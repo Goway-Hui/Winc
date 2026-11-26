@@ -37,6 +37,11 @@ const DOCUMENT: &[StatusKey] = &[
     StatusKey::Encoding,
     StatusKey::Indent,
     StatusKey::Language,
+    StatusKey::CangjieBuild,
+    StatusKey::CangjieTest,
+    StatusKey::CangjieRun,
+    StatusKey::CangjieDebug,
+    StatusKey::LanguageService,
 ];
 
 /// 图片预览组的项，按从左到右的顺序。
@@ -616,6 +621,47 @@ pub(super) fn draw_status(app: &mut App, frame: &mut Frame<'_>) {
             (StatusKey::Position, position, None),
             (StatusKey::Encoding, hex, Some(StatusItem::Encoding)),
         ];
+    }
+    if app.cangjie_project_open() {
+        items.extend([
+            (
+                StatusKey::CangjieBuild,
+                t!("status-cangjie-build").to_owned(),
+                Some(StatusItem::CangjieBuild),
+            ),
+            (
+                StatusKey::CangjieTest,
+                t!("status-cangjie-test").to_owned(),
+                Some(StatusItem::CangjieTest),
+            ),
+            (
+                StatusKey::CangjieRun,
+                t!("status-cangjie-run").to_owned(),
+                Some(StatusItem::CangjieRun),
+            ),
+            (
+                StatusKey::CangjieDebug,
+                t!("status-cangjie-debug").to_owned(),
+                Some(StatusItem::CangjieDebug),
+            ),
+        ]);
+    }
+    if app.lsp.shown() {
+        let count = app.lsp.problem_count(app.editor.active().map(|doc| doc.id));
+        let text = if count == 0 {
+            app.lsp.status_text().to_owned()
+        } else {
+            format!(
+                "{} · {}",
+                app.lsp.status_text(),
+                t!("cangjie-lsp-problems", count = count)
+            )
+        };
+        items.push((
+            StatusKey::LanguageService,
+            text,
+            Some(StatusItem::LanguageService),
+        ));
     }
     draw_group(
         frame,

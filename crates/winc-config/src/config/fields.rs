@@ -69,6 +69,7 @@ pub(super) const SECTIONS: &[(&str, &[Field])] = &[
     ("latex", LATEX),
     ("update", UPDATE),
     ("terminal", TERMINAL),
+    ("debug", DEBUG),
     ("vim", VIM),
     ("git", GIT),
     ("ai", AI),
@@ -76,6 +77,7 @@ pub(super) const SECTIONS: &[(&str, &[Field])] = &[
     ("remote", REMOTE),
     ("keyboard", KEYBOARD),
     ("format", FORMAT),
+    ("cangjie", CANGJIE),
 ];
 
 /// 顶层的单值设置，写在各节之后。
@@ -592,7 +594,13 @@ const VIM: &[Field] = &[
     },
 ];
 
-/// `terminal` 一节。
+/// `debug` section.
+const DEBUG: &[Field] = &[
+    string_field!("program", debug_program),
+    string_field!("adapter", debug_adapter),
+];
+
+/// `terminal` section.
 const TERMINAL: &[Field] = &[
     Field {
         key: "external",
@@ -984,6 +992,13 @@ const KEYBOARD: &[Field] = &[
             })
         },
     },
+];
+
+/// `cangjie` 一节：工具链和语言服务。
+pub(super) const CANGJIE: &[Field] = &[
+    string_field!("sdkPath", cangjie_sdk_path),
+    string_field!("lspPath", cangjie_lsp_path),
+    bool_field!("lspEnabled", cangjie_lsp_enabled),
 ];
 
 /// `format` 一节，用户配置和项目配置共用。

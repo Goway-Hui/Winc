@@ -600,8 +600,25 @@ impl App {
             ToggleTerminalPanel => self.click_terminal_button(),
             EnableTerminal => self.settings_toggle(crate::layout::Setting::TerminalModule),
             RunConfiguration => self.run_current_config(),
+            DebugStart => {
+                if self.debug.status == crate::app::debug::DebugStatus::Stopped {
+                    self.debug_continue();
+                } else {
+                    self.start_debug();
+                }
+            }
+            DebugStop => self.stop_debug(),
+            DebugNext => self.debug_next(),
+            DebugStepIn => self.debug_step_in(),
+            DebugStepOut => self.debug_step_out(),
+            ToggleBreakpoint => self.toggle_debug_breakpoint_at_caret(),
             StopConfiguration => self.stop_current_config(),
             EditRunConfigurations => self.edit_run_configs(),
+            CangjieNewProject => self.ask_new_cangjie_project(),
+            CangjieNewFile => self.new_cangjie_file(),
+            CangjieBuild => self.run_cangjie_command(crate::app::cangjie::CangjieCommand::Build),
+            CangjieTest => self.run_cangjie_command(crate::app::cangjie::CangjieCommand::Test),
+            CangjieRun => self.run_cangjie_command(crate::app::cangjie::CangjieCommand::Run),
             SendHttpRequest => return self.send_http_request(None),
             ClearTerminal => self.clear_terminal(),
             TerminalCopy => self.terminal_copy(false),
@@ -648,6 +665,34 @@ impl App {
                 return false;
             }
             Action::RunConfiguration if self.editor.root().is_none() => return false,
+            Action::CangjieBuild | Action::CangjieTest | Action::CangjieRun
+                if !self.cangjie_project_open() =>
+            {
+                return false;
+            }
+            Action::DebugStart
+                if self.editor.root().is_none()
+                    || !self
+                        .editor
+                        .root()
+                        .is_some_and(|root| winc_backend::fs::is_file(root.join("cjpm.toml"))) =>
+            {
+                return false;
+            }
+            Action::DebugStop if !self.debug_active() => return false,
+            Action::DebugNext | Action::DebugStepIn | Action::DebugStepOut
+                if !self.debug_can_step() =>
+            {
+                return false;
+            }
+            Action::ToggleBreakpoint
+                if self
+                    .editor
+                    .active()
+                    .is_none_or(|doc| doc.path.is_none() || !doc.shows_text()) =>
+            {
+                return false;
+            }
             Action::MoveTerminalToEditor
                 if self.terminal.editor_at(self.terminal.group_at).is_some()
                     || self.terminal.tab().is_none() =>

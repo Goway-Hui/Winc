@@ -35,6 +35,21 @@ fn definitions_in_common_languages() {
         assert_eq!(finds("run", line), Some(col), "{line}");
     }
 }
+#[test]
+fn cangjie_declarations_are_definitions() {
+    for (name, line, col) in [
+        ("run", "func run() {}", 5),
+        ("App", "public class App <: Component {", 13),
+        ("Greeter", "interface Greeter {", 10),
+        ("count", "let count = 1", 4),
+        ("value", "var value: Int64 = 0", 4),
+        ("build", "    public func build() {}", 16),
+    ] {
+        assert_eq!(finds(name, line), Some(col), "{line}");
+    }
+    assert_eq!(finds("run", "run()"), None);
+    assert_eq!(finds("run", "    return run()"), None);
+}
 
 #[test]
 fn uses_are_not_definitions() {

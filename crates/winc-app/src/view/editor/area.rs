@@ -214,6 +214,21 @@ pub(super) fn draw_text_area(app: &mut App, frame: &mut Frame<'_>, index: usize)
             blame_hover,
             line_blame,
             problems: app.latex_problem_lines(id),
+            diagnostics: app
+                .lsp
+                .diagnostics
+                .get(&id)
+                .map(|items| {
+                    items
+                        .iter()
+                        .enumerate()
+                        .map(|(index, diagnostic)| {
+                            let (line, _) = text.pos_to_line_col(diagnostic.range.start);
+                            (line, diagnostic.severity, index)
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
             http_requests: app.http_request_lines(doc),
             http_mark: app.http_mark(id),
         };
@@ -372,6 +387,8 @@ struct Screen<'a> {
     line_blame: Option<(usize, String)>,
     /// LaTeX 编译出错的行（从 0 起，从小到大）。
     problems: Vec<usize>,
+    /// 语言服务诊断：（行，严重程度，在该文档诊断中的下标），按行排列。
+    diagnostics: Vec<(usize, u8, usize)>,
     /// `.http` 文件中请求行的行号（从 0 起，从小到大）；不是 `.http` 文件时为 `None`。
     http_requests: Option<std::rc::Rc<[usize]>>,
     /// 正在发送或刚结束的请求：（请求行的行号，按钮的样子）。

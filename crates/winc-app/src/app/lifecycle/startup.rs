@@ -53,6 +53,7 @@ impl App {
             editor,
             terminal: terminal::TerminalPanel::default(),
             run: terminal::run::RunConfigs::default(),
+            debug: Default::default(),
             store: crate::app::settings::Store {
                 saved_config: config.clone(),
                 config_path: None,
@@ -226,6 +227,8 @@ impl App {
                 git
             },
             remote: Default::default(),
+            lsp: Default::default(),
+            intelligence: Default::default(),
             trash: crate::system::move_to_trash,
             closing: Default::default(),
             ask_on_quit: Arc::new(AtomicBool::new(false)),

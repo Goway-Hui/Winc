@@ -45,6 +45,90 @@ fn the_settings_button_stays_at_the_right_end_of_the_status_bar() {
 }
 
 #[test]
+fn language_service_status_shows_connection_and_current_diagnostics() {
+    let mut app = blank_app(false);
+    paint(&mut app);
+    assert!(
+        app.hits
+            .status
+            .iter()
+            .all(|(_, item)| *item != StatusItem::LanguageService)
+    );
+
+    app.lsp.status = crate::app::lsp::Status::Ready;
+    paint(&mut app);
+    assert!(
+        app.hits
+            .status
+            .iter()
+            .any(|(_, item)| *item == StatusItem::LanguageService)
+    );
+    assert_eq!(
+        app.status.motion.text(StatusKey::LanguageService),
+        Some(winc_i18n::t!("cangjie-lsp-connected"))
+    );
+
+    let dir = sample_folder("status-lsp");
+    let path = dir.join("main.cj");
+    std::fs::write(&path, "main() {}\n").unwrap();
+    app.open_path(&path);
+    let id = app.editor.active().unwrap().id;
+    app.lsp.diagnostics.insert(
+        id,
+        vec![crate::app::lsp::Diagnostic {
+            severity: 1,
+            message: "错误".into(),
+            source: None,
+            range: crate::app::lsp::DiagnosticRange { start: 0, end: 1 },
+            version: 1,
+        }],
+    );
+    paint(&mut app);
+    assert!(
+        app.hits
+            .status
+            .iter()
+            .any(|(_, item)| *item == StatusItem::LanguageService)
+    );
+    let expected = format!(
+        "{} · {}",
+        winc_i18n::t!("cangjie-lsp-connected"),
+        winc_i18n::t!("cangjie-lsp-problems", count = 1)
+    );
+    assert_eq!(
+        app.status.motion.text(StatusKey::LanguageService),
+        Some(expected.as_str())
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn unavailable_language_service_is_shown_and_clickable() {
+    let mut app = blank_app(false);
+    app.lsp.status = crate::app::lsp::Status::Unavailable;
+    paint(&mut app);
+    let (rect, _) = app
+        .hits
+        .status
+        .iter()
+        .find(|(_, item)| *item == StatusItem::LanguageService)
+        .unwrap();
+    assert_eq!(
+        app.status.motion.text(StatusKey::LanguageService),
+        Some(winc_i18n::t!("cangjie-lsp-unavailable"))
+    );
+    app.on_mouse_move(rect.x + rect.w / 2.0, rect.y + rect.h / 2.0);
+    assert_eq!(
+        app.pointer.hover,
+        Hover::Status(StatusItem::LanguageService)
+    );
+    assert!(app.pointer.hover.has_tooltip());
+    app.open_status_menu(StatusItem::LanguageService);
+    assert_eq!(app.lsp.status, crate::app::lsp::Status::Unavailable);
+}
+
+#[test]
 fn every_crumb_opens_the_folder_it_names() {
     let dir = search_folder("breadcrumb");
     std::fs::create_dir_all(dir.join(".git")).unwrap();

@@ -253,7 +253,13 @@ impl App {
             _ => {}
         }
 
-        match self.target_at(x, y) {
+        let target = self.target_at(x, y);
+        if matches!(target, Target::Editor)
+            && let Some(hover) = self.language_hover_at(x, y)
+        {
+            return hover;
+        }
+        match target {
             Target::WindowControl(control) => Hover::WindowControl(control),
             Target::ResizeEdge(direction) => Hover::ResizeEdge(direction),
             Target::NoticeButton => Hover::NoticeButton,
@@ -285,6 +291,8 @@ impl App {
             Target::SidebarButton => Hover::SidebarButton,
             Target::NewTab => Hover::NewTab,
             Target::TabList => Hover::TabList,
+            Target::TopRunMenu => Hover::TopRunMenu,
+            Target::TopRunPlay => Hover::TopRunPlay,
             Target::Preview(mode) => Hover::Preview(mode),
             Target::Browser => Hover::Browser,
             Target::MarkdownLink(link) => Hover::MarkdownLink(link),
@@ -325,6 +333,15 @@ impl App {
             Target::PaneDivider(index) => Hover::PaneDivider(index),
             Target::TerminalSplit(index) => Hover::TerminalSplit(index),
             Target::TerminalGroupSplit(index) => Hover::TerminalGroupSplit(index),
+            Target::TerminalHeader(crate::app::terminal::HeaderHit::Debug(control)) => {
+                Hover::DebugControl(control)
+            }
+            Target::TerminalHeader(crate::app::terminal::HeaderHit::DebugStack(index)) => {
+                Hover::DebugStack(index)
+            }
+            Target::TerminalHeader(crate::app::terminal::HeaderHit::DebugVariable(path)) => {
+                Hover::DebugVariable(path)
+            }
             Target::TerminalHeader(hit) => Hover::TerminalHeader(hit),
             Target::TerminalBlock(hit) => Hover::TerminalBlock(hit),
             // 遮挡下方但没有按钮的区域，以及没有悬停效果的部件：输入条、顶栏空白、编辑区文字。
@@ -336,6 +353,35 @@ impl App {
             | Target::Terminal
             | Target::None => Hover::None,
         }
+    }
+
+    /// 编辑区文字上的语言服务器悬停 ticket；仅仓颉且服务就绪时启用。
+    pub(in crate::app) fn language_hover_at(&self, x: f32, y: f32) -> Option<Hover> {
+        if self.lsp.status != super::super::lsp::Status::Ready || !self.over_editor_text() {
+            return None;
+        }
+        let doc = self.editor.active()?;
+        if doc.highlighter.language().id != "cangjie"
+            || !doc.shows_text()
+            || doc.is_pending()
+            || doc.is_large()
+        {
+            return None;
+        }
+        let offset = self.pos_at(x, y)?;
+        let (line, col) = doc.text().pos_to_line_col(offset);
+        let chars: Vec<char> = doc.text().line_content(line).slice().chars().collect();
+        let range = doc.highlighter.language().name_range(&chars, col)?;
+        if offset < doc.text().line_start(line) + range.start
+            || offset > doc.text().line_start(line) + range.end
+        {
+            return None;
+        }
+        Some(Hover::LanguageHover {
+            document: doc.id,
+            revision: doc.revision,
+            offset,
+        })
     }
 
     /// 返回窗口坐标 (`x`, `y`)（逻辑像素）处最上层的可交互目标。
@@ -490,6 +536,12 @@ impl App {
         }
         if l.sidebar_button.contains(x, y) {
             return Target::SidebarButton;
+        }
+        if self.hits.top_run_menu.is_some_and(|r| r.contains(x, y)) {
+            return Target::TopRunMenu;
+        }
+        if self.hits.top_run_play.is_some_and(|r| r.contains(x, y)) {
+            return Target::TopRunPlay;
         }
         if self.tabs.new_tab.contains(x, y) {
             return Target::NewTab;
@@ -1250,6 +1302,10 @@ pub(super) enum Target {
     NewTab,
     /// 标签栏无法容纳全部标签时显示在最右端的「⌄」。
     TabList,
+    /// 顶栏右端的运行配置菜单。
+    TopRunMenu,
+    /// 顶栏右端的运行按钮。
+    TopRunPlay,
     /// 标签栏右端「源代码 / 分栏 / 预览」三段切换中的一段。
     Preview(winc_editor::PreviewMode),
     /// 标签栏右端「在浏览器中打开」。

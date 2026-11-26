@@ -15,6 +15,7 @@ pub use tools::{Auto, PRESETS, Preset, presets, presets_for};
 
 use std::borrow::Cow;
 use std::ffi::OsString;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex, PoisonError};
@@ -188,6 +189,8 @@ pub struct Plan {
     task: Task,
     /// 只格式化一部分时，是否只把所选内容交给命令（见 [`Fragment`]）。
     fragment: bool,
+    /// cjfmt 只接受文件路径：运行时把编辑器内容写入同目录私有临时文件，再读取格式化结果。
+    cjfmt: bool,
 }
 
 impl Plan {
@@ -256,6 +259,13 @@ impl Plan {
         let mut plan = Plan::with_command(command, auto, file, root)?;
         plan.language = language.name;
         plan.task = task;
+        plan.cjfmt = language.id == "cangjie"
+            && plan.args.first().is_some_and(|name| {
+                Path::new(name)
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name == "cjfmt" || name == "cjfmt.exe")
+            });
         if !guesses.is_empty() {
             // `with_command` 已确认命令至少有一个参数。
             plan.program = Program::Search(plan.args[0].clone());
@@ -314,6 +324,7 @@ impl Plan {
             language: "",
             task: Task::Format,
             fragment: false,
+            cjfmt: false,
         })
     }
 
@@ -345,6 +356,7 @@ impl Plan {
                 plan.range = self.range.clone();
                 plan.language = self.language;
                 plan.task = self.task;
+                plan.cjfmt = self.cjfmt;
                 return Some(Ok(plan));
             }
         }
@@ -803,7 +815,7 @@ impl Formatter {
             .find(|d| winc_backend::fs::is_dir(d))
             .unwrap_or(Path::new("/"));
 
-        let mut command = match place.zip(crate::wsl::locate_here(cwd)) {
+        let mut command = match place.clone().zip(crate::wsl::locate_here(cwd)) {
             Some((place, cwd)) => {
                 let mut command = self.0.shell.command(Path::new("wsl.exe"));
                 let path = crate::wsl::login_path(&place.distro);
@@ -843,7 +855,57 @@ impl Formatter {
             Some(fragment) => (fragment.sent.clone(), Some(unified)),
             None => (unified.into_owned(), None),
         };
-        let input = input.into_bytes();
+
+        // cjfmt 没有标准输入模式，只接受 `.cj` 文件。把编辑器当时的内容写入源文件同目录的
+        // 私有随机临时文件，既不读取可能过期的磁盘内容，也不触碰用户的源文件。远端路径无法
+        // 创建本机临时文件，明确拒绝而不是静默格式化旧内容。
+        struct TempFile(PathBuf);
+        impl Drop for TempFile {
+            #[allow(
+                clippy::disallowed_methods,
+                reason = "cjfmt temporary files are created locally and never on a remote host"
+            )]
+            fn drop(&mut self) {
+                let _ = std::fs::remove_file(&self.0);
+            }
+        }
+        let mut cjfmt_temp = None::<TempFile>;
+        let (input, cjfmt_output) = if plan.cjfmt {
+            if remote || place.is_some() {
+                return Err(FormatError::Unavailable(
+                    t!("format-cjfmt-unsupported-host").to_owned(),
+                ));
+            }
+            let name = plan
+                .file
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("untitled.cj");
+            let (temp, mut output) = winc_backend::local::create_temporary(cwd, name, true)
+                .map_err(|error| {
+                    FormatError::Failed(t!("format-cjfmt-temp-failed", error = error.to_string()))
+                })?;
+            cjfmt_temp = Some(TempFile(temp.clone()));
+            output.write_all(input.as_bytes()).map_err(|error| {
+                FormatError::Failed(t!("format-cjfmt-temp-failed", error = error.to_string()))
+            })?;
+            drop(output);
+            // 参数在命令构造时已经按真实文件展开，这里只替换值为临时文件。
+            let mut cjfmt_args = args.clone();
+            for arg in &mut cjfmt_args {
+                if arg == file.as_os_str() {
+                    *arg = temp.clone().into_os_string();
+                }
+            }
+            command = self.0.shell.command(&program);
+            command
+                .current_dir(cwd)
+                .args(&cjfmt_args)
+                .stderr(Stdio::piped());
+            (Vec::new(), Some(temp))
+        } else {
+            (input.into_bytes(), None)
+        };
         let output = match process::run(&mut command, input, job.timeout, cancel) {
             Ok(output) => output,
             Err(RunError::Spawn(e)) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -920,7 +982,7 @@ impl Formatter {
                 output: transcript(),
             });
         }
-        if output.stdout.is_empty() && !old.is_empty() {
+        if output.stdout.is_empty() && !old.is_empty() && cjfmt_output.is_none() {
             let message = t!("format-no-output", tool = tool.as_str());
             return Err(if stderr.trim().is_empty() {
                 FormatError::Failed(message)
@@ -931,15 +993,25 @@ impl Formatter {
                 }
             });
         }
-        let Ok(formatted) = String::from_utf8(output.stdout) else {
-            let message = t!("format-output-not-utf8", tool = tool.as_str());
-            return Err(FormatError::Failed(message));
-        };
-
-        let formatted = if eslint {
-            eslint_output(&formatted, &unify_newlines(&old, "\n"), &tool)?
-        } else {
+        let formatted = if let Some(temp) = &cjfmt_output {
+            #[allow(
+                clippy::disallowed_methods,
+                reason = "cjfmt writes a local temporary file; remote paths are rejected above"
+            )]
+            let formatted = std::fs::read_to_string(temp).map_err(|error| {
+                FormatError::Failed(t!("format-cjfmt-read-failed", error = error.to_string()))
+            })?;
             formatted
+        } else {
+            let Ok(formatted) = String::from_utf8(output.stdout) else {
+                let message = t!("format-output-not-utf8", tool = tool.as_str());
+                return Err(FormatError::Failed(message));
+            };
+            if eslint {
+                eslint_output(&formatted, &unify_newlines(&old, "\n"), &tool)?
+            } else {
+                formatted
+            }
         };
         let formatted = formatted.strip_prefix('\u{feff}').unwrap_or(&formatted);
         let joined =
@@ -951,6 +1023,7 @@ impl Formatter {
             .iter()
             .map(|c| line_count(&c.removed).max(line_count(&c.inserted)))
             .sum();
+        drop(cjfmt_temp);
         Ok(Formatted {
             changes,
             lines,

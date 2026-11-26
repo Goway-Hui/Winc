@@ -22,6 +22,8 @@ pub struct Language {
     pub name: &'static str,
     /// 文件扩展名（不含点，小写），用于按扩展名识别。
     pub extensions: &'static [&'static str],
+    /// 复合扩展名（不含点，小写），优先于最后一个扩展名匹配，例如 `cj.d`。
+    pub compound_extensions: &'static [&'static str],
     /// 需要按完整文件名识别的文件（例如 `Makefile`、`.gitignore`），区分大小写。
     pub file_names: &'static [&'static str],
     /// 按文件名开头识别的文件（例如 `Dockerfile.` 对应 `Dockerfile.dev`），区分大小写。
@@ -258,6 +260,8 @@ pub enum RawStrings {
     /// Swift 的 `#"…"#`、`##"…"##`：收尾由开头 `#` 的个数决定，最多 2 个；更多的 `#` 按普通
     /// 字符串处理。
     Swift,
+    /// 仓颉的 `#"…"#`、`##"…"##`：井号在引号之前，收尾由井号个数决定，最多 2 个。
+    Cangjie,
 }
 
 /// 字符串插值的写法，见 [`Language::interpolation`]。
@@ -513,6 +517,7 @@ const BASE: Language = Language {
     id: "text",
     name: "Plain Text",
     extensions: &[],
+    compound_extensions: &[],
     file_names: &[],
     name_prefixes: &[],
     interpreters: &[],
@@ -669,6 +674,7 @@ static ALL: &[&Language] = &[
     &LOG,
     &CSV,
     &TSV,
+    &CANGJIE,
 ];
 
 /// 返回支持高亮的全部语言（不含纯文本），顺序与识别时一致。
@@ -751,10 +757,20 @@ pub fn detect(file_name: &str) -> &'static Language {
         return language;
     }
 
+    let lower = file_name.to_ascii_lowercase();
+    if let Some(language) = ALL.iter().find(|l| {
+        l.compound_extensions.iter().any(|suffix| {
+            lower
+                .strip_suffix(suffix)
+                .is_some_and(|stem| stem.ends_with('.'))
+        })
+    }) {
+        return language;
+    }
+
     let extension = file_name
         .rsplit_once('.')
         .map(|(_, ext)| ext.to_ascii_lowercase());
-
     if let Some(extension) = extension {
         if let Some(language) = ALL
             .iter()

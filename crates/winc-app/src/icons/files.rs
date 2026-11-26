@@ -64,7 +64,7 @@ impl FileGlyph {
     /// 全部记号（包括 `file_kind` 用到的每一个缩写）：目录菜单按它预先画好每种图标，漏掉的记号
     /// 在菜单里没有图标。
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-    pub const ALL: [FileGlyph; 38] = [
+    pub const ALL: [FileGlyph; 39] = [
         FileGlyph::Code,
         FileGlyph::Text,
         FileGlyph::Data,
@@ -100,6 +100,7 @@ impl FileGlyph {
         FileGlyph::Letters("RB"),
         FileGlyph::Letters("SW"),
         FileGlyph::Letters("TEX"),
+        FileGlyph::Letters("CJ"),
         FileGlyph::Java,
         FileGlyph::Project,
         FileGlyph::Plain,

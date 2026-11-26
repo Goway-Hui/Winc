@@ -96,7 +96,7 @@ fn dragging_the_title_row_moves_the_card_and_keeps_it_in_the_window() {
 
 #[test]
 fn scrolling_settings_reuses_the_window_below_and_looks_the_same() {
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
 
     let dir = sample_folder("settings-scroll-base");
     let mut app = app_with(&dir.join("short.rs"), false);
@@ -127,7 +127,10 @@ fn scrolling_settings_reuses_the_window_below_and_looks_the_same() {
         .clone();
 
     // 停止滚动后释放快照并重绘。
-    let now = Instant::now();
+    let now = app
+        .settings
+        .scrolled_at
+        .expect("the previous paint should keep the scroll base alive");
     assert!(app.settings_scroll_tick(now).is_some());
     assert!(app.settings.scroll_base.is_some());
     assert_eq!(app.settings_scroll_tick(now + Duration::from_secs(1)), None);
@@ -300,8 +303,8 @@ fn settings_keyboard_walks_every_item_and_adjusts() {
     );
     assert_eq!(app.settings.selected, Setting::License);
     assert_eq!(app.settings_layout().page, SettingsPage::About);
-    // 往回走过关于页的七行（版本、更新、更新日志和四个链接），回到快捷键页的搜索框。
-    for _ in 0..7 {
+    // 往回走过关于页的七行（版本、更新、更新日志和四个链接）和仓颉页的三行，回到快捷键页的搜索框。
+    for _ in 0..10 {
         app.settings_move(false);
     }
     assert_eq!(app.settings.selected, Setting::KeySearch);

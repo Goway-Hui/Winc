@@ -30,6 +30,8 @@ pub enum SettingsPage {
     Keys,
     /// 关于：版本和应用内更新。
     About,
+    /// 仓颉：SDK、语言服务与项目工作流。
+    Cangjie,
 }
 
 /// 各可选模块是否开启：决定分类栏列出哪些页。
@@ -41,7 +43,7 @@ pub struct Modules {
 
 impl SettingsPage {
     /// 全部分类，顺序与分类栏从上到下的顺序一致。
-    pub const ALL: [SettingsPage; 12] = [
+    pub const ALL: [SettingsPage; 13] = [
         SettingsPage::General,
         SettingsPage::Appearance,
         SettingsPage::Editor,
@@ -53,6 +55,7 @@ impl SettingsPage {
         SettingsPage::Ai,
         SettingsPage::Modules,
         SettingsPage::Keys,
+        SettingsPage::Cangjie,
         SettingsPage::About,
     ];
 
@@ -80,6 +83,7 @@ impl SettingsPage {
             SettingsPage::Modules => t!("settings-page-modules"),
             SettingsPage::Keys => t!("settings-page-keys"),
             SettingsPage::About => t!("settings-page-about"),
+            SettingsPage::Cangjie => t!("settings-page-cangjie"),
         }
     }
 
@@ -326,6 +330,16 @@ impl SettingsPage {
                     ),
                 ]
             }
+            SettingsPage::Cangjie => vec![
+                group(
+                    t!("settings-group-cangjie-toolchain"),
+                    vec![S::CangjieSdkPath],
+                ),
+                group(
+                    t!("settings-group-cangjie-language-service"),
+                    vec![S::CangjieLspPath, S::CangjieLspEnabled],
+                ),
+            ],
             SettingsPage::Keys => Vec::new(),
             SettingsPage::About => vec![
                 plain(vec![S::Version]),

@@ -107,6 +107,22 @@ fn output_replaces_the_text_with_the_files_own_newlines() {
     assert_eq!(format(&formatter, &file, "nothing", "").unwrap(), "");
 }
 
+#[test]
+fn cangjie_uses_cjfmt_with_private_temporary_input() {
+    let dir = scratch("cangjie");
+    let source = dir.join("main.cj");
+    std::fs::write(&source, "main() {}\n").unwrap();
+    let plan = Plan::new(language("cangjie"), &source, None, None).unwrap();
+    assert_eq!(plan.auto, Some(("cjfmt", None)));
+    assert!(plan.cjfmt);
+    assert!(plan.args.iter().any(|arg| arg == "{file}"));
+
+    let range = FormatRange::new(&Rope::from_str("main() {\n    println(1)\n}\n"), 0, 3);
+    let mut ranged = plan.clone();
+    ranged.restrict(&range).unwrap();
+    assert!(ranged.is_restricted());
+}
+
 #[cfg(unix)] // 用不带扩展名的脚本冒充工具；Windows 上程序要带 PATHEXT 中的扩展名
 #[test]
 fn the_file_name_is_one_argument_and_the_tool_runs_beside_it() {

@@ -116,6 +116,26 @@ impl Screen<'_> {
         );
         if self.doc.bookmarks().contains(row.line) {
             icons::bookmark(frame, center, self.app.palette.accent, gutter);
+        } else if self.app.debug.breakpoints.iter().any(|bp| {
+            Some(bp.path.as_path()) == self.doc.path.as_deref() && bp.line == row.line && bp.enabled
+        }) {
+            let r = PROBLEM_DOT / 2.0;
+            let dot = Rect::new(center.0 - r, center.1 - r, PROBLEM_DOT, PROBLEM_DOT);
+            frame.rect_clipped(dot, self.app.palette.error, r, gutter);
+        } else if let Some((_, severity, _)) = self
+            .diagnostics
+            .iter()
+            .find(|(line, _, _)| *line == row.line)
+        {
+            let r = PROBLEM_DOT / 2.0;
+            let dot = Rect::new(center.0 - r, center.1 - r, PROBLEM_DOT, PROBLEM_DOT);
+            let color = match severity {
+                1 => self.app.palette.error,
+                2 => self.app.palette.warning,
+                3 => self.app.palette.accent,
+                _ => self.app.palette.text_muted,
+            };
+            frame.rect_clipped(dot, color, r, gutter);
         } else if self.problems.binary_search(&row.line).is_ok() {
             let r = PROBLEM_DOT / 2.0;
             let dot = Rect::new(center.0 - r, center.1 - r, PROBLEM_DOT, PROBLEM_DOT);

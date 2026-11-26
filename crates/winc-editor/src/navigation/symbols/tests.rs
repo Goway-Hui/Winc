@@ -54,6 +54,34 @@ macro_rules! log { () => {} }
         ]
     );
 }
+#[test]
+fn cangjie_types_functions_and_members() {
+    let text = "\
+package demo
+
+public class App <: Component {
+    prop title: String = \"demo\"
+    public func build() {}
+}
+
+interface Greeter {
+    func greet(name: String): String
+}
+
+func main() {}
+";
+    assert_eq!(
+        outline("cj", text),
+        [
+            ("App".into(), "类型", None),
+            ("title".into(), "变量", Some("App".into())),
+            ("build".into(), "方法", Some("App".into())),
+            ("Greeter".into(), "类型", None),
+            ("greet".into(), "方法", Some("Greeter".into())),
+            ("main".into(), "函数", None),
+        ]
+    );
+}
 
 #[test]
 fn python_classes_methods_and_module_names() {

@@ -65,6 +65,13 @@ const INSTALLS: &[Install] = &[
         package: None,
     },
     Install {
+        program: "cjfmt",
+        ways: &[way("cjv", "cjv install")],
+        note: Some(|| t!("format-install-note-cjfmt")),
+        url: "https://docs.cangjie-lang.cn/cjnative/tools/source_zh_cn/tools/cjfmt_manual.html",
+        package: None,
+    },
+    Install {
         program: "prettier",
         ways: &[
             way("npm", "npm install --global prettier"),

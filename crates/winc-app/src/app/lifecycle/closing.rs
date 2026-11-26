@@ -512,6 +512,7 @@ impl App {
             self.preview.markdown.forget(doc.id);
             self.preview.latex.forget(doc.id);
         }
+        self.sync_lsp_documents();
         self.bars.search.current = None;
         self.check_waiting();
 

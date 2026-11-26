@@ -141,6 +141,12 @@ pub(crate) enum HeaderHit {
     Split,
     /// 运行配置的按钮。
     Run(run::RunButton),
+    /// 调试面板的执行按钮。
+    Debug(crate::app::debug::DebugControl),
+    /// 调试调用栈中的一帧。
+    DebugStack(usize),
+    /// 调试变量树中的一项。
+    DebugVariable(crate::app::debug::DebugPath),
     /// 查找条的一部分。
     Find(FindPart),
 }

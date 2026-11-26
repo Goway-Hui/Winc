@@ -76,6 +76,16 @@ fn terminal_application_priority_is_optional_and_round_trips() {
 }
 
 #[test]
+fn debug_program_and_adapter_round_trip() {
+    let (config, problems) =
+        Config::parse(r#"{"debug":{"program":"target/debug/app","adapter":"/opt/lldb-vscode"}}"#);
+    assert!(problems.is_empty(), "{problems:?}");
+    assert_eq!(config.debug_program.as_deref(), Some("target/debug/app"));
+    assert_eq!(config.debug_adapter.as_deref(), Some("/opt/lldb-vscode"));
+    assert_eq!(Config::parse(&config.to_json()).0, config);
+}
+
+#[test]
 fn empty_and_partial_configs_fall_back_to_defaults() {
     let (config, problems) = Config::parse("{}");
     assert_eq!(config, Config::default());
@@ -371,6 +381,8 @@ fn round_trips_through_json() {
         markdown_selection_toolbar: Some(false),
         markdown_image_folder: Some("${filename}.assets".to_string()),
         markdown_image_name: Some("${date}".to_string()),
+        debug_program: Some("target/debug/app".to_owned()),
+        debug_adapter: Some("/opt/lldb-vscode".to_owned()),
         latex_path: Some("/Library/TeX/texbin/latexmk".to_string()),
         update_auto_check: Some(false),
         confirm_drag_and_drop: Some(false),
@@ -452,6 +464,9 @@ fn round_trips_through_json() {
         )]),
         fix_on_save: Some(true),
         fix_commands: BTreeMap::from([("python".to_string(), "ruff check --fix -".to_string())]),
+        cangjie_sdk_path: Some("/opt/cangjie".to_owned()),
+        cangjie_lsp_path: Some("/opt/cangjie/tools/bin/LSPServer".to_owned()),
+        cangjie_lsp_enabled: Some(false),
     };
 
     let (parsed, problems) = Config::parse(&config.to_json());

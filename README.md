@@ -25,8 +25,9 @@
 
 ## Overview
 
-winc is a desktop editor built with Rust and its own rendering engine. It starts in about a tenth
-of a second, stays light with large files open, and responds to every keystroke and scroll at once.
+winc is a desktop editor built with Rust and its own rendering engine, with a dedicated Cangjie
+workflow for project creation, build, test, run, language intelligence, and debugging. It starts in
+about a tenth of a second, stays light with large files open, and responds instantly.
 
 | Measure | Result |
 | --- | --- |
@@ -42,9 +43,10 @@ Measured on macOS; results vary with hardware and system load.
 
 | Area | Capabilities |
 | --- | --- |
-| Editing | Multiple cursors, find and replace, split panes, native input methods, smooth scrolling in gigabyte-sized files, and an experimental Vim mode |
 | Syntax | Highlighting for common programming, markup, data, and configuration languages, with lightweight go-to-definition and find usages that need no language server |
 | Formatting | Whole-file formatting through rustfmt, Prettier, Black, Ruff, gofmt, and other external tools |
+| Editing | Multiple cursors, find and replace, split panes, native input methods, smooth scrolling in gigabyte-sized files, and an experimental Vim mode |
+| Cangjie | `.cj` / `.cj.d` highlighting, `cjpm` project detection, `cjfmt` formatting, LSPServer completion/definition/references/diagnostics/hover, and LLDB DAP breakpoints and debugging |
 | Preview | Markdown with math and Mermaid diagrams, images, SVG, PDF and LaTeX (macOS and Windows), Word documents, and spreadsheets, with the source one click away |
 | Git | Side-by-side diffs with word-level highlights, all uncommitted changes in one tab, staging by hunk, committing selected lines, push, a commit graph, and blame |
 | Project | A file tree, quick open, and project search that follows `.gitignore`, in the sidebar or a dialog, with results as a list or a tree |
@@ -57,6 +59,10 @@ Measured on macOS; results vary with hardware and system load.
 On touchscreens, tap to press buttons and place the caret, double-tap to select a word, swipe to
 scroll, drag scrollbars and dividers, and hold for 500 ms to open the context menu. On Windows, the
 title bar and window edges also respond to touch, with the same snapping as the mouse.
+
+Cangjie debugging uses the SDK's `lldb-vscode`. LLDB 15 links against Python 3.11; winc looks for
+`WINC_PYTHON311_HOME`, then `~/.local/share/cangjie/python-3.11.*`, and otherwise uses the system
+`libpython3.11`.
 
 Image, SVG, and PDF previews zoom with Ctrl (⌘ on macOS) and the wheel, a pinch, or Ctrl/⌘ with
 `+`, `-`, and `0`, keeping the point under the pointer in place. Scroll or drag to pan, and

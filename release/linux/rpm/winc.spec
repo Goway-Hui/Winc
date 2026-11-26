@@ -3,7 +3,7 @@
 Name:           winc
 Version:        %{winc_version}
 Release:        1
-Summary:        A lighter, faster desktop code editor
+Summary:        Desktop editor with a dedicated Cangjie workflow
 License:        Apache-2.0
 URL:            https://winc.si
 ExclusiveArch:  x86_64 aarch64
@@ -34,7 +34,7 @@ Recommends:     (dejavu-sans-fonts or dejavu-fonts)
 %global __provides_exclude_from ^%{_prefix}/lib/winc/.*$
 
 %description
-A native Rust editor with its own rendering engine, Git integration and terminal.
+A native Rust editor with Cangjie project creation, build/test/run, LSP, debugging, Git integration and terminal.
 
 %install
 src=%{winc_files}

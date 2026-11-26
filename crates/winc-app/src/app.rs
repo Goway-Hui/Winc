@@ -5,6 +5,8 @@
 //! [`Action`](crate::keymap::Action)，或直接修改状态。
 
 pub(crate) mod animation;
+pub(crate) mod cangjie;
+pub(crate) mod debug;
 pub(crate) mod diff;
 pub(crate) mod editor;
 mod fields;
@@ -12,6 +14,7 @@ pub(crate) mod git;
 pub(crate) mod hits;
 mod input;
 mod lifecycle;
+pub(crate) mod lsp;
 pub(crate) mod preview;
 mod release_notes;
 pub(crate) mod remote;
@@ -133,6 +136,8 @@ type OrderedTask = Box<dyn FnOnce() + Send>;
 /// 后台线程和系统回调（面板、菜单、提示框）送回事件循环的事件。
 #[derive(Debug)]
 pub enum UserEvent {
+    /// 语言服务 reader 送回的一批事件；附带启动代次，切换 root 前的迟到事件会被忽略。
+    LanguageService(u64, Vec<lsp::Event>),
     /// 打开或另存为面板已关闭；取消时路径为 `None`。
     Picked(Pick, Option<PathBuf>),
     /// 全局搜索产生了新结果，或已搜索完成。
@@ -208,6 +213,10 @@ pub enum UserEvent {
     ToolChoice(Box<ToolAnswer>),
     /// 确认框中同意运行参数所指的运行配置。
     RunApproved(Box<winc_config::RunConfig>),
+    /// 用户确认启动参数所指的仓颉调试会话。
+    DebugApproved(Box<debug::DebugLaunch>),
+    /// 调试会话的后台线程送来了初始化、响应或事件。
+    Debug(debug::Generation, Box<debug::ReaderEvent>),
     /// 提示框中回答了是否信任 Git 仓库（第一个参数）指纹为第二个参数的配置。
     GitTrust(PathBuf, u64, bool),
     /// 已取得用户 shell 的环境，格式化工具在其 `PATH` 中查找。
@@ -405,6 +414,8 @@ pub enum PromptKind {
     NewTag { at: String },
     /// 分支的新名称；`old` 为当前名称。
     RenameBranch { old: String },
+    /// 新建仓颉项目：父目录已选，等待输入项目名。
+    CangjieProject { parent: PathBuf },
     /// Vim 模式下查找的模式；`forward` 为真时向后文查找。
     VimSearch { forward: bool },
     /// Vim 模式的命令行。
@@ -421,7 +432,11 @@ impl PromptKind {
     pub fn takes_text(&self) -> bool {
         matches!(
             self,
-            Self::Stash | Self::StashFiles(_) | Self::NewTag { .. } | Self::RenameBranch { .. }
+            Self::Stash
+                | Self::StashFiles(_)
+                | Self::NewTag { .. }
+                | Self::RenameBranch { .. }
+                | Self::CangjieProject { .. }
         )
     }
 }
@@ -481,6 +496,8 @@ pub enum Focus {
     GitPanel,
     /// 功能对话框（新建工作树）里的输入框。
     Dialog,
+    /// 底部调试面板。
+    DebugPanel,
 }
 
 impl Focus {
@@ -492,7 +509,7 @@ impl Focus {
                 | Focus::Tree
                 | Focus::Results
                 | Focus::Settings
-                | Focus::CommitList
+                | Focus::DebugPanel
                 | Focus::Outline
                 | Focus::Terminal
         )
@@ -519,6 +536,10 @@ impl Focus {
 }
 
 /// 鼠标悬停的目标，用于绘制悬停效果。
+#[allow(
+    clippy::enum_variant_names,
+    reason = "the Hover enum names the target kind; LanguageHover keeps the language-server meaning"
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Hover {
     None,
@@ -545,6 +566,10 @@ pub enum Hover {
     NewTab,
     /// 标签栏无法容纳全部标签时显示在最右端的「⌄」，用于列出全部标签。
     TabList,
+    /// 顶栏右端的运行配置菜单。
+    TopRunMenu,
+    /// 顶栏右端的运行按钮。
+    TopRunPlay,
     /// 标签栏右端「源代码 / 分栏 / 预览」三段切换中的一段。
     Preview(winc_editor::PreviewMode),
     /// 标签栏右端「在浏览器中打开」。
@@ -619,6 +644,12 @@ pub enum Hover {
     Folded(usize),
     /// `.http` 文件行号栏中发送请求的按钮，参数是请求行的行号（从 0 起）。
     HttpRun(usize),
+    /// 调试面板的执行按钮。
+    DebugControl(debug::DebugControl),
+    /// 调试调用栈的一行。
+    DebugStack(usize),
+    /// 调试变量树的一处。
+    DebugVariable(debug::DebugPath),
     /// 超长行截断说明中的「显示整行」，参数是行号（从 0 起）。
     LongLine(usize),
     /// 滚动条的可点击区域。
@@ -639,6 +670,12 @@ pub enum Hover {
     RulerChange(usize),
     /// 日志标签中的可点击目标。
     Log(git::log::LogTarget),
+    /// 语言服务器悬停目标，参数为文档、版本、revision 与 char 偏移。
+    LanguageHover {
+        document: DocumentId,
+        revision: u64,
+        offset: usize,
+    },
     /// 逐行追溯栏中的一行，参数为行序号（从 0 起）。
     Blame(usize),
 }
@@ -664,8 +701,9 @@ impl Hover {
                 | Hover::Status(
                     StatusItem::Terminal
                         | StatusItem::GitPanel
-                        | StatusItem::Remote
+                        | StatusItem::LanguageService
                         | StatusItem::Settings
+                        | StatusItem::Remote
                 )
                 | Hover::TreeMore
                 | Hover::GitPanel(
@@ -678,6 +716,8 @@ impl Hover {
                 | Hover::SidebarButton
                 | Hover::Tab(..)
                 | Hover::TabList
+                | Hover::TopRunMenu
+                | Hover::TopRunPlay
                 | Hover::Preview(_)
                 | Hover::Browser
                 | Hover::ViewTab(_)
@@ -771,6 +811,7 @@ impl Hover {
                         | DiffTarget::IncludeLine(..)
                 )
                 | Hover::Merge(git::merge::MergeTarget::Previous | git::merge::MergeTarget::Next)
+                | Hover::LanguageHover { .. }
                 | Hover::LatexStatus
                 | Hover::LatexProblem(_)
         )
@@ -996,6 +1037,8 @@ pub struct App {
     pub(crate) terminal: terminal::TerminalPanel,
     /// 当前目录的运行配置。
     pub(crate) run: terminal::run::RunConfigs,
+    /// 仓颉调试会话、断点和面板状态。
+    pub(crate) debug: debug::DebugState,
     /// 当前生效的配置。
     pub config: Config,
     /// 配置与状态文件的写回：文件的路径、配置文件当前的内容和配置的版本号。
@@ -1116,7 +1159,10 @@ pub struct App {
     pub git: git::GitState,
     /// 远程模块：正在进行的连接。
     pub remote: remote::RemoteState,
-
+    /// 本窗口独立的通用语言服务客户端、打开的文档和诊断。
+    pub(crate) lsp: lsp::LanguageServiceState,
+    /// 补全、跳转、引用和悬浮提示的异步状态。
+    pub(crate) intelligence: editor::intelligence::Intelligence,
     // 右键菜单、关闭和退出
     /// 删除文件使用的函数：正常运行时移到废纸篓，测试中替换为直接删除，避免写入用户的废纸篓。
     pub trash: fn(&Path) -> std::io::Result<()>,
@@ -1329,6 +1375,14 @@ impl App {
             self.leave_tooltip();
         }
         self.pointer.hover = hover;
+        if let Hover::LanguageHover {
+            document,
+            revision,
+            offset,
+        } = hover
+        {
+            self.request_lsp_hover_at(document, revision, offset);
+        }
         self.overlays.tooltip.since = hover.has_tooltip().then(Instant::now);
         self.overlays.tooltip.pointer_x = self.mouse().0;
         self.overlays.tooltip.shown = false;

@@ -27,6 +27,7 @@ use crate::theme::*;
 
 mod alert;
 mod controls;
+mod debug;
 mod dialog;
 mod diff;
 mod editor;
@@ -186,6 +187,9 @@ pub fn draw(app: &mut App, frame: &mut Frame<'_>) {
         round_editor_corners(app, frame);
     }
     terminal::draw_terminal(app, frame);
+    if app.debug_shown() {
+        debug::draw_debug(app, frame);
+    }
     // 最大化的 Git 面板盖在侧栏和编辑区上面：两者的圆角先修整好，面板再画在上面。
     let git_full = app.git.panel.full && app.git_panel_shown();
     if git_full {

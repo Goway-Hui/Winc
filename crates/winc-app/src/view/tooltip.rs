@@ -26,9 +26,28 @@ pub(super) fn draw_tooltip(app: &App, frame: &mut Frame<'_>) {
         git::commit::draw_history_card(app, frame, i, app.tooltip_opacity());
         return;
     }
-    let tip = workspace::panel::tooltip(app)
-        .or_else(|| workspace::search_dialog::tooltip(app))
-        .or_else(|| git_tip(app));
+    let tip = if let Hover::LanguageHover {
+        document,
+        revision,
+        offset,
+    } = app.pointer.hover
+    {
+        app.intelligence
+            .hover_text
+            .as_ref()
+            .filter(|(id, version, at, _, _)| {
+                *id == document && *version == revision && *at == offset
+            })
+            .map(|(_, _, _, content, _)| {
+                let rect = app.ime.cursor.unwrap_or(app.layout.text);
+                (rect, content.clone())
+            })
+            .or_else(|| workspace::panel::tooltip(app))
+    } else {
+        workspace::panel::tooltip(app)
+            .or_else(|| workspace::search_dialog::tooltip(app))
+            .or_else(|| git_tip(app))
+    };
     let (button, label): (Rect, String) = match tip {
         Some(tip) => tip,
         None => match app.pointer.hover {

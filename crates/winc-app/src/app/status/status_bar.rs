@@ -24,6 +24,16 @@ pub enum StatusItem {
     Encoding,
     /// 文档的语言：手动改用别的语言（没保存过的文件选了语言才能格式化），或按文件名重新识别。
     Language,
+    /// 仓颉语言服务状态与当前文件的诊断数量：点击重试。
+    LanguageService,
+    /// 构建当前仓颉项目。
+    CangjieBuild,
+    /// 测试当前仓颉项目。
+    CangjieTest,
+    /// 运行当前仓颉项目。
+    CangjieRun,
+    /// 调试当前仓颉项目。
+    CangjieDebug,
     /// 当前的仓库或工作树（有多个位置时才有）：点击弹出系统菜单切换。
     Worktree,
     /// Git 的当前分支：点击弹出系统菜单切换。
@@ -81,6 +91,31 @@ impl App {
             self.click_update();
             return;
         }
+        if item == StatusItem::LanguageService {
+            self.retry_lsp();
+            self.request_redraw();
+            return;
+        }
+        if item == StatusItem::CangjieBuild {
+            self.run_action(crate::keymap::Action::CangjieBuild);
+            self.request_redraw();
+            return;
+        }
+        if item == StatusItem::CangjieTest {
+            self.run_action(crate::keymap::Action::CangjieTest);
+            self.request_redraw();
+            return;
+        }
+        if item == StatusItem::CangjieRun {
+            self.run_action(crate::keymap::Action::CangjieRun);
+            self.request_redraw();
+            return;
+        }
+        if item == StatusItem::CangjieDebug {
+            self.run_action(crate::keymap::Action::DebugStart);
+            self.request_redraw();
+            return;
+        }
         let Some(&(rect, _)) = self.hits.status.iter().find(|&&(_, i)| i == item) else {
             return;
         };
@@ -99,7 +134,12 @@ impl App {
                 | StatusItem::GitPanel
                 | StatusItem::Remote
                 | StatusItem::Settings
-                | StatusItem::Update,
+                | StatusItem::Update
+                | StatusItem::LanguageService
+                | StatusItem::CangjieBuild
+                | StatusItem::CangjieTest
+                | StatusItem::CangjieRun
+                | StatusItem::CangjieDebug,
                 _,
             ) => return,
         };
@@ -319,6 +359,7 @@ impl App {
         if let Some(doc) = self.editor.active_mut() {
             doc.choose_language(language);
         }
+        self.ensure_lsp_started();
         self.relayout();
         self.request_redraw();
     }

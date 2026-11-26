@@ -43,6 +43,7 @@ pub(super) fn draw_suggest(app: &mut App, frame: &mut Frame<'_>) {
                 let key = command.action().and_then(crate::keymap::shortcut);
                 (command.label().to_owned(), key.unwrap_or_default())
             }
+            Hit::Language { label, detail, .. } => (label.clone(), detail.clone()),
         })
         .collect();
     let commands = matches!(suggest.hits.first(), Some(Hit::Command(_)));

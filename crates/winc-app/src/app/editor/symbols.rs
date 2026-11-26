@@ -12,15 +12,15 @@ use super::*;
 /// 当前文档的符号列表，进入 `@` 模式时提取一次。
 pub struct SymbolList {
     /// 符号所属的文档。
-    id: DocumentId,
+    pub(crate) id: DocumentId,
     /// 提取到的符号，按在文件中出现的顺序排列。
-    pub items: Vec<Symbol>,
+    pub(crate) items: Vec<Symbol>,
     /// 文档是否为大文件（全文没有读入内存）；为真时不提取符号，`items` 为空。
-    pub too_large: bool,
+    pub(crate) too_large: bool,
     /// 打开列表时编辑区的滚动位置：首行（行，从 0 起）和横向偏移（逻辑像素）。
     ///
     /// 未选择符号就离开时据此恢复。
-    scroll: (f64, f32),
+    pub(crate) scroll: (f64, f32),
 }
 
 impl App {
@@ -46,6 +46,7 @@ impl App {
         self.overlays.picker.input.set_caret(1, false);
         self.focus = Focus::Picker;
         self.picker_refresh();
+        self.request_lsp_symbols();
         self.relayout();
         self.reset_blink();
         self.request_redraw();

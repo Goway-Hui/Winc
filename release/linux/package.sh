@@ -51,8 +51,8 @@ Maintainer: DEEIX-AI <41963680+Noxiven@users.noreply.github.com>
 Homepage: https://winc.si
 Depends: libc6 (>= $GLIBC_FLOOR), libgcc-s1, fontconfig, libxkbcommon0, libxkbcommon-x11-0, libx11-6, libx11-xcb1, libxcb1, libxcursor1, libxi6, libxrandr2, libwayland-client0
 Recommends: fonts-dejavu-core
-Description: A lighter, faster desktop code editor
- A native Rust editor with its own rendering engine, Git integration and terminal.
+Description: A lightweight desktop editor with a dedicated Cangjie workflow
+ A native Rust editor with Cangjie project creation, build/test/run, LSP, debugging, Git and terminal.
 EOF
 dpkg-deb --root-owner-group --build "$deb" "$bundle/deb/$stem.deb"
 

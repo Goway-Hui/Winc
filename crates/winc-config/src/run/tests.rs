@@ -140,6 +140,28 @@ fn detection_writes_nothing() {
     std::fs::remove_dir_all(&root).unwrap();
 }
 
+#[test]
+fn cangjie_projects_detect_build_test_and_run() {
+    let root = temporary("cangjie");
+    assert!(detected_run_configs(&root).is_empty());
+    std::fs::write(root.join("cjpm.toml"), "[package]\nname = \"demo\"\n").unwrap();
+    let configs = detected_run_configs(&root);
+    let commands: Vec<(&str, &str)> = configs
+        .iter()
+        .map(|config| (config.name.as_str(), config.command.as_str()))
+        .collect();
+    assert_eq!(
+        commands,
+        [
+            ("build", "cjpm build"),
+            ("test", "cjpm test"),
+            ("run", "cjpm run")
+        ]
+    );
+    assert!(!root.join(".winc").exists());
+    std::fs::remove_dir_all(&root).unwrap();
+}
+
 fn temporary(name: &str) -> PathBuf {
     let root = std::env::temp_dir().join(format!("winc-run-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);

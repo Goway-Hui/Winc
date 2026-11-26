@@ -97,7 +97,7 @@ const ANNOTATIONS: &str = r"(?:@IDENT(?:\.IDENT)*(?:\([^()]*\))?\s+)*";
 /// 声明语句：关键字（`fn`、`def`、`class`、`struct` 等）后跟名字，关键字前可以有注解和修饰词。
 static DECLARATION: LazyLock<Regex> = LazyLock::new(|| {
     regex(
-        r#"^\s*ANNOTATIONS(?:(?:pub(?:\s*\([^)]*\))?|export|default|declare|abstract|final|sealed|open|data|inline|value|private|public|protected|internal|static|async|unsafe|extern(?:\s+"[^"]*")?|const|override|suspend|partial|enum|annotation|companion)\s+)*(?P<kw>fn|def|func|function\*?|fun|class|struct|enum|trait|interface|type|union|mod|module|namespace|protocol|extension|object|record|macro_rules!)\s+(?:<[^>]*>\s*)?(?:IDENT\.)*(?P<name>IDENT)"#,
+        r#"^\s*ANNOTATIONS(?:(?:pub(?:\s*\([^)]*\))?|export|default|declare|abstract|final|sealed|open|data|inline|value|private|public|protected|internal|static|async|unsafe|extern(?:\s+"[^"]*")?|const|override|suspend|partial|enum|annotation|companion|redef|operator|synchronized)\s+)*(?P<kw>fn|def|func|function\*?|fun|class|struct|enum|trait|interface|type|union|mod|module|namespace|protocol|extension|object|record|macro_rules!|macro|data|newtype|extend|prop)\s+(?:<[^>]*>\s*)?(?:IDENT\.)*(?P<name>IDENT)"#,
     )
 });
 
@@ -736,9 +736,10 @@ fn recognize(
         && !c_type_use(&caps, content, language)
     {
         let kind = match &caps["kw"] {
-            "mod" | "module" | "namespace" | "extension" => SymbolKind::Module,
+            "mod" | "module" | "namespace" | "extension" | "extend" => SymbolKind::Module,
             "class" | "struct" | "enum" | "trait" | "interface" | "type" | "union" | "protocol"
             | "object" | "record" => SymbolKind::Type,
+            "prop" => SymbolKind::Variable,
             _ => SymbolKind::Function,
         };
         return found(&caps, kind);

@@ -130,6 +130,13 @@ pub const PRESETS: &[Preset] = &[
         auto: Auto::Always,
     },
     Preset {
+        name: "cjfmt",
+        task: Task::Format,
+        command: "cjfmt -f {file}",
+        languages: &["cangjie"],
+        auto: Auto::Always,
+    },
+    Preset {
         name: "Prettier",
         task: Task::Format,
         command: "prettier --stdin-filepath {file}",
@@ -300,6 +307,7 @@ const RANGE_ARGS: &[(&str, Option<&str>, &[&str])] = &[
         &["--range={start-line}:1-{end-line}:{end-column}"],
     ),
     ("black", None, &["--line-ranges={start-line}-{end-line}"]),
+    ("cjfmt", None, &["-l", "{start-line}:{end-line}"]),
 ];
 
 /// 返回程序 `name` 以参数 `args` 运行、只格式化一部分时要追加的参数；不支持时返回 `None`。

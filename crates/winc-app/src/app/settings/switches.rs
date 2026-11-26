@@ -71,6 +71,7 @@ impl App {
             Setting::TerminalShellIntegration => {
                 self.config.terminal_shell_integration != Some(false)
             }
+            Setting::CangjieLspEnabled => self.config.cangjie_lsp_enabled != Some(false),
             _ => false,
         }
     }
@@ -171,6 +172,14 @@ impl App {
                 self.config.terminal_application_priority = Some(on)
             }
             Setting::TerminalShellIntegration => self.config.terminal_shell_integration = Some(on),
+            Setting::CangjieLspEnabled => {
+                self.config.cangjie_lsp_enabled = Some(on);
+                if on {
+                    self.ensure_lsp_started();
+                } else {
+                    self.lsp.stop();
+                }
+            }
             _ => return,
         }
         // 由命令切换（如 ⌥Z 自动换行）时看不到开关，不必播放动画；开关在设置浮层和「首次设置」

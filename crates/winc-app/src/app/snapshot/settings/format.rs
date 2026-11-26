@@ -43,9 +43,12 @@ fn format_settings_list_the_languages_in_use() {
     app.settings_show_page(SettingsPage::Format);
     assert_eq!(app.settings_layout().page, SettingsPage::Format);
 
-    // 列出的语言：项目在用的（Python 配置了 Ruff）、总是自动选择的（Rust、Go）、
+    // 列出的语言：项目在用的（Python 配置了 Ruff）、总是自动选择的（Rust、Go、仓颉）、
     // 写过命令的（JSON），按语言表的顺序排列。
-    assert_eq!(app.settings.listed.format, ["python", "rust", "go", "json"]);
+    assert_eq!(
+        app.settings.listed.format,
+        ["python", "rust", "go", "json", "cangjie"]
+    );
     // 按钮上显示工具名，名称下方说明工具是如何确定的；指定了命令时，写命令本身。
     let row = |app: &App, id: &'static str| app.settings.format_row(id).unwrap().clone();
     let python = row(&app, "python");
@@ -203,7 +206,7 @@ fn format_settings_list_the_languages_in_use() {
     let listed: Vec<MenuCommand> = menu_commands(&app).into_iter().map(|(c, _)| c).collect();
     assert_eq!(
         listed,
-        ["python", "rust", "go", "json"].map(|id| MenuCommand::SkipOnSave(index(id)))
+        ["python", "rust", "go", "json", "cangjie"].map(|id| MenuCommand::SkipOnSave(index(id)))
     );
     app.run_menu_command(MenuCommand::SkipOnSave(index("json")));
     assert_eq!(app.config.format_on_save_exclude, ["json"]);
@@ -242,8 +245,9 @@ fn format_settings_add_a_language_and_pick_a_tool() {
     app.settings_show_page(SettingsPage::Format);
     paint(&mut app);
 
-    // 「添加语言…」弹出尚未列出的语言，有预设工具的排在前面。
-    click_part(&mut app, SettingsPart::Action(Setting::AddLanguage));
+    // 「添加语言…」在页面下方，可能不在滚动区域内，直接激活该项。
+    app.settings.selected = Setting::AddLanguage;
+    app.settings_activate();
     let menu = menu_commands(&app);
     let index = |id: &str| {
         winc_syntax::languages()

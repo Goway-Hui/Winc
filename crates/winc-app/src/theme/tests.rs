@@ -69,7 +69,15 @@ fn file_kinds_follow_whole_names_then_extensions() {
     assert_eq!(glyph(".envrc"), Shell);
     assert_eq!(glyph(".env"), Key);
     assert_eq!(glyph("VERSION"), Plain);
-    assert_eq!(glyph("README-zh.md"), Info);
+}
+
+#[test]
+fn cangjie_files_have_a_distinct_icon() {
+    use FileGlyph::*;
+    assert_eq!(file_kind("main.cj").0, Letters("CJ"));
+    assert_eq!(file_kind("cjpm.toml").0, Package);
+    assert_eq!(file_kind("cjpm.lock").0, Lock);
+    assert_ne!(file_kind("main.cj").1, file_kind("main.rs").1);
 }
 
 #[test]

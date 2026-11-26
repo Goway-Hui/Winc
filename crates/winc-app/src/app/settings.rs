@@ -823,6 +823,8 @@ impl App {
             None if setting == Setting::TerminalShell => self.config.terminal_shell.clone(),
             None if setting == Setting::GitPath => self.config.git_path.clone(),
             None if setting == Setting::LatexPath => self.config.latex_path.clone(),
+            None if setting == Setting::CangjieSdkPath => self.config.cangjie_sdk_path.clone(),
+            None if setting == Setting::CangjieLspPath => self.config.cangjie_lsp_path.clone(),
             None if setting.is_ai_text() => ai_text(&mut self.config, setting).clone(),
             None => self.font_setting(setting).clone(),
         };
@@ -962,6 +964,26 @@ impl App {
                 self.settings.error = None;
                 self.focus = Focus::Settings;
                 self.set_latex_path(value);
+            }
+            None if setting == Setting::CangjieSdkPath => {
+                self.settings.editing = None;
+                self.settings.editing_original = None;
+                self.settings.error = None;
+                self.focus = Focus::Settings;
+                self.config.cangjie_sdk_path = value;
+                self.save_config();
+                self.ensure_lsp_started();
+                self.request_redraw();
+            }
+            None if setting == Setting::CangjieLspPath => {
+                self.settings.editing = None;
+                self.settings.editing_original = None;
+                self.settings.error = None;
+                self.focus = Focus::Settings;
+                self.config.cangjie_lsp_path = value;
+                self.save_config();
+                self.ensure_lsp_started();
+                self.request_redraw();
             }
             None if setting.is_ai_text() => {
                 self.settings.editing = None;

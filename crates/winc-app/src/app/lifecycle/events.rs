@@ -217,6 +217,8 @@ impl ApplicationHandler<UserEvent> for App {
             let _ = proxy.send_event(UserEvent::OfferMoveToApplications);
         }
         self.install_system_hooks();
+        // 窗口恢复后按当前 root 启动语言服务；不可用不会阻止窗口与编辑器启动。
+        self.ensure_lsp_started();
         // 启动时恢复的目录在事件循环创建之前打开，此时才能开始监视、读取运行配置和恢复终端、侧栏。
         self.watch_folder();
         self.watch_extra_folders();
@@ -492,6 +494,13 @@ impl App {
     /// 提示框由窗口自行绘制时，选中按钮的事件同样直接交给此处。
     pub(in crate::app) fn handle_event(&mut self, event: UserEvent) {
         match event {
+            UserEvent::LanguageService(generation, events) => {
+                self.handle_lsp_events(generation, events);
+                self.poll_lsp_completion();
+                self.poll_lsp_navigation();
+                self.poll_lsp_hover();
+                self.poll_lsp_symbols();
+            }
             UserEvent::Picked(kind, path) => self.on_picked(kind, path),
             #[cfg(all(unix, not(target_os = "macos")))]
             UserEvent::PickFailed(kind, error) => self.pick_failed(kind, error.as_deref()),
@@ -555,6 +564,8 @@ impl App {
             UserEvent::GitUndoCommit => self.undo_last_commit(),
             UserEvent::ReplaceAllConfirmed(total) => self.replace_all_confirmed(total),
             UserEvent::RunApproved(config) => self.approved_run(*config),
+            UserEvent::DebugApproved(launch) => self.approved_debug(*launch),
+            UserEvent::Debug(generation, event) => self.handle_debug_event(generation, *event),
             UserEvent::TerminalClose(id, whole) => self.confirmed_terminal_close(id, whole),
             UserEvent::TerminalRestart(id) => self.confirmed_terminal_restart(id),
             UserEvent::PythonEnvironment(venv, load) => {
@@ -807,6 +818,10 @@ impl App {
         // 方向键浏览结果的防抖到期时打开最后选中的匹配。
         earliest(&mut wake, self.poll_browse(now));
         earliest(&mut wake, self.poll_search_dialog(now));
+        if self.poll_language_requests(now) {
+            earliest(&mut wake, Some(now + Duration::from_millis(16)));
+        }
+        self.poll_debug();
 
         // 光标闪烁的定时唤醒需要同时满足：窗口有焦点且可见、焦点位于可输入位置、当前文档可以编辑文
         // 字（或光标在差异里）、没有进行中的输入法组字；图片预览和无法打开的文件不显示光标。离上次
@@ -907,6 +922,7 @@ impl App {
         // 等待后台保存的大文件写完，避免留下写入不完整的临时文件。
         self.wait_for_saves();
         self.cancel_all_formatting();
+        self.close_lsp();
         // 同意退出后不再定时写备份，但其他窗口仍在询问期间本窗口的文档可能再被修改，因此按当前
         // 内容再写一次备份，使下次启动恢复最新内容。未经询问直接退出时（未保存的内容均已有
         // 备份，或系统注销、关机）同样按当前内容写一次，不丢失最近的修改。

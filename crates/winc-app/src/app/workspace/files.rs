@@ -33,6 +33,8 @@ pub enum Pick {
     Open,
     /// 只能选择目录。
     OpenFolder,
+    /// 新建仓颉项目：选择父目录。
+    NewCangjieProject,
     /// 选择目录，初始位置是参数指定的 WSL 发行版的根目录。
     WslFolder(#[cfg_attr(not(windows), allow(dead_code))] String),
     /// 把文档另存为，参数为要保存的文档。
@@ -373,6 +375,7 @@ impl App {
     /// `⌘P` 的文件表只更新 `from` 和 `to` 这两项；全局搜索结果重新搜索。
     pub(in crate::app) fn paths_moved(&mut self, from: &Path, to: &Path) {
         self.editor.moved(from, to);
+        self.sync_lsp_documents();
         let relocate = |path: &mut PathBuf| {
             if let Ok(rest) = path.strip_prefix(from) {
                 *path = if rest.as_os_str().is_empty() {
@@ -1071,6 +1074,7 @@ impl App {
                     }
                     self.picker_touched(path.into_iter().collect());
                 }
+                self.sync_lsp_documents();
                 true
             }
             // 另存为的新位置不以管理员身份重试：那是用户刚选的地方，可以换一个。
@@ -1115,6 +1119,7 @@ impl App {
             | Pick::WslFolder(_)
             | Pick::WorktreeFolder
             | Pick::AddFolder
+            | Pick::NewCangjieProject
             | Pick::BackgroundImage
             | Pick::OpenProject
             | Pick::ImportSettings
@@ -1148,6 +1153,7 @@ impl App {
                 | Pick::WslFolder(_)
                 | Pick::WorktreeFolder
                 | Pick::AddFolder
+                | Pick::NewCangjieProject
                 | Pick::Download(_) => Panel::Open {
                     files: false,
                     dir: None,
@@ -1209,7 +1215,11 @@ impl App {
                     };
                     (choose, t!("workspace-remote-dialog-key-choose"))
                 }
-                Pick::OpenFolder | Pick::WslFolder(_) | Pick::WorktreeFolder | Pick::AddFolder => {
+                Pick::OpenFolder
+                | Pick::WslFolder(_)
+                | Pick::WorktreeFolder
+                | Pick::AddFolder
+                | Pick::NewCangjieProject => {
                     let choose = Choose::Open {
                         directory: true,
                         dir: None,
@@ -1267,6 +1277,7 @@ impl App {
                 Pick::KeyFile => t!("workspace-remote-dialog-key-choose"),
                 Pick::OpenFolder | Pick::WorktreeFolder => t!("cmd-open-folder"),
                 Pick::AddFolder => t!("cmd-add-folder"),
+                Pick::NewCangjieProject => t!("cmd-cangjie-new-project"),
                 Pick::WslFolder(_) => t!("cmd-open-wsl-folder"),
                 Pick::SaveAs(_) => t!("cmd-save-as"),
                 Pick::SaveProject => t!("cmd-save-project-as"),
@@ -1310,6 +1321,7 @@ impl App {
                     | Pick::WslFolder(_)
                     | Pick::WorktreeFolder
                     | Pick::AddFolder
+                    | Pick::NewCangjieProject
                     | Pick::Download(_) => dialog.pick_folder(),
                     Pick::SaveAs(_) | Pick::SaveProject | Pick::ExportSettings => {
                         dialog.set_file_name(&name).save_file()
@@ -1357,6 +1369,7 @@ impl App {
             | Pick::SaveProject
             | Pick::OpenProject
             | Pick::ExportSettings
+            | Pick::NewCangjieProject
             | Pick::ImportSettings => None,
         };
 
@@ -1366,6 +1379,7 @@ impl App {
             Pick::Open => self.open_from_outside(&path),
             Pick::OpenFolder | Pick::WslFolder(_) => self.open_path(&path),
             Pick::WorktreeFolder => self.worktree_folder_picked(path),
+            Pick::NewCangjieProject => self.prompt_cangjie_project(path),
             Pick::AddFolder => self.add_folder(&path),
             Pick::BackgroundImage => self.set_background_image(Some(path)),
             Pick::KeyFile => self.key_file_picked(&path),

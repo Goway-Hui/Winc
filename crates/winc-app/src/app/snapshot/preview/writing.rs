@@ -226,6 +226,7 @@ fn link_paths_are_suggested_while_typing() {
                 Hit::File(path, _) => path.clone(),
                 Hit::Heading(_, _, slug) => format!("#{slug}"),
                 Hit::Command(command) => format!("/{}", command.label()),
+                Hit::Language { label, .. } => label.clone(),
             })
             .collect()
     };

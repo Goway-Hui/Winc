@@ -32,6 +32,7 @@ const DART: [u32; 2] = [0x5CB8E6, 0x1A78A8];
 const JULIA: [u32; 2] = [0x7FA8D8, 0x3B6AA0];
 const C: [u32; 2] = [0x8FA6D6, 0x4A65A0];
 const DOTNET: [u32; 2] = [0x9B8BE0, 0x5A47B0];
+const CANGJIE: [u32; 2] = [0x7DD3C0, 0x14866F];
 /// 项目文件的颜色：Winc 的蓝色。
 const PROJECT: [u32; 2] = [0x6FA3FF, 0x1769FC];
 /// 未识别的类型的颜色。
@@ -106,6 +107,8 @@ pub fn file_kind(name: &str) -> (FileGlyph, [u32; 2]) {
         "package.json" => Some((Package, NPM)),
         "deno.json" | "deno.jsonc" => Some((Package, GREY)),
         "cargo.toml" => Some((Package, RUST)),
+        "cjpm.toml" => Some((Package, CANGJIE)),
+        "cjpm.lock" => Some((Lock, CANGJIE)),
         "go.mod" | "go.work" => Some((Package, GO)),
         "pyproject.toml" | "setup.py" | "setup.cfg" | "pipfile" | "constraints.txt" => {
             Some((Package, PYTHON))
@@ -205,6 +208,7 @@ fn by_extension(ext: &str) -> Option<(FileGlyph, [u32; 2])> {
         "tsx" => (Letters("TS"), REACT),
         "ets" => (Letters("ETS"), [0x6C9FE0, 0x2D62B0]),
         "wxs" => (Code, [0xE6C35C, 0x9A7A0E]),
+        "cj" => (Letters("CJ"), CANGJIE),
         "go" => (Letters("GO"), GO),
         "java" => (Java, [0xE08C5A, 0xA9521D]),
         "kt" | "kts" => (Letters("KT"), PURPLE),

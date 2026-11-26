@@ -176,6 +176,7 @@ impl App {
             Focus::LogFilter => self.on_key_log_filter(event, &base, cmd),
             Focus::GitPanel if self.log_active() => self.log_key(&event.logical_key),
             Focus::GitPanel => {}
+            Focus::DebugPanel => {}
             Focus::Terminal => self.on_key_terminal(event),
             // 这两个输入框使用终端的键位表，Windows、Linux 的 Ctrl+V 不在表中，在此处理。
             Focus::TerminalFind | Focus::TerminalRename if cmd && base == "v" => self.paste(),

@@ -14,6 +14,10 @@ pub enum StartAction {
     /// macOS 上打开文件或目录（`⌘O`），选择器中都能选；其他平台上只打开文件（`Ctrl+O`）。
     Open,
     /// 打开目录（`Ctrl+K Ctrl+O`）；只在选择器不能同时选文件和目录的平台上显示。
+    /// 新建仓颉项目。
+    NewCangjieProject,
+    /// 新建仓颉源文件。
+    NewCangjieFile,
     OpenFolder,
     /// 连接到 SSH 主机；只在远程模块开着时显示。
     Remote,
@@ -221,6 +225,9 @@ impl App {
         }
 
         self.apply_compact_folders();
+        // root 已替换：关闭旧 client，并按新目录重新初始化。
+        self.ensure_lsp_started();
+        self.load_debug_breakpoints();
         if let Some(project) = &project {
             self.load_project(project);
         }
@@ -368,6 +375,7 @@ impl App {
             });
         }
         self.editor.workspace = None;
+        self.close_lsp();
         self.disk.restoring = None;
         // 标签都关了，没有要备份的：放开这个目录的备份锁（见 `release_folder_lock`）。
         self.release_folder_lock();
@@ -690,6 +698,8 @@ impl App {
         match action {
             StartAction::Settings => self.open_settings(),
             StartAction::NewFile => self.new_file(),
+            StartAction::NewCangjieProject => self.ask_new_cangjie_project(),
+            StartAction::NewCangjieFile => self.new_cangjie_file(),
             StartAction::Open => self.pick(Pick::Open),
             StartAction::OpenFolder => self.pick(Pick::OpenFolder),
             StartAction::Remote => self.open_remote_picker(),

@@ -219,6 +219,7 @@ fn draw_nav_row(
         SettingsPage::Modules => icons::modules(frame, icon, p.text, layout.nav),
         SettingsPage::Keys => icons::keyboard(frame, icon, p.text, layout.nav),
         SettingsPage::About => icons::about(frame, icon, p.text, layout.nav),
+        SettingsPage::Cangjie => icons::code(frame, icon, p.text, layout.nav),
     }
     let color = p.text;
     ui_text(

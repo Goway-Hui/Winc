@@ -220,6 +220,10 @@ fn sample() -> State {
         approved_commands: vec![(PathBuf::from("/a/项目/.winc"), "rustfmt \"$FILE\"".into())],
         trusted_repos: vec![(PathBuf::from("/a/项目"), u64::MAX - 1)],
         remote_keys: Vec::new(),
+        debug_breakpoints: BTreeMap::from([(
+            PathBuf::from("/a/项目"),
+            BTreeMap::from([(PathBuf::from("/a/项目/src/main.cj"), vec![(4, 0, true)])]),
+        )]),
     };
     state.set_remote_key("me@devbox:2200", "~/.ssh/工作 key");
     state.set_remote_key("build", "/keys/build");
@@ -718,6 +722,19 @@ fn an_approved_command_is_matched_by_its_text() {
     }
     assert_eq!(state.approved_commands.len(), MAX_TOOL_CHOICES);
     assert!(!state.command_approved(folder, "rustfmt"), "最早的挤掉了");
+}
+
+#[test]
+fn debug_breakpoints_round_trip_per_project() {
+    let mut state = State::default();
+    let root = Path::new("/a/project");
+    state.remember_debug_breakpoints(
+        root,
+        vec![(root.join("src/main.cj"), vec![(3, 2, true), (8, 0, false)])],
+    );
+    assert_eq!(State::parse(&state.to_json()), state);
+    state.remember_debug_breakpoints(root, Vec::new());
+    assert!(state.debug_breakpoints.is_empty());
 }
 
 #[test]

@@ -27,6 +27,69 @@ fn lex(file: &str, line: &str, state: LineState) -> (Vec<(String, TokenKind)>, L
 }
 
 #[test]
+fn cangjie_basics() {
+    let (tokens, next) = lex(
+        "a.cj",
+        r#"public class App <: Component { func build() { let s = "value ${name}" } }"#,
+        LineState::Normal,
+    );
+    assert!(tokens.contains(&("public".into(), TokenKind::Keyword)));
+    assert!(tokens.contains(&("class".into(), TokenKind::Keyword)));
+    assert!(tokens.contains(&("func".into(), TokenKind::Keyword)));
+    assert!(tokens.contains(&("build".into(), TokenKind::Function)));
+    assert!(tokens.contains(&("\"value ${".into(), TokenKind::String)));
+    assert!(
+        !tokens
+            .iter()
+            .any(|(text, kind)| text == "name" && *kind == TokenKind::Text)
+    );
+    assert_eq!(next, LineState::Normal);
+}
+
+#[test]
+fn cangjie_nested_comments_and_single_line_strings() {
+    let (tokens, next) = lex(
+        "a.cj",
+        "/* outer /* inner */ still outer */",
+        LineState::Normal,
+    );
+    assert_eq!(
+        tokens,
+        [(
+            "/* outer /* inner */ still outer */".into(),
+            TokenKind::Comment
+        )]
+    );
+    assert_eq!(next, LineState::Normal);
+
+    let (tokens, next) = lex("a.cj", "let text = \"first", LineState::Normal);
+    assert_eq!(
+        tokens,
+        [
+            ("let".into(), TokenKind::Keyword),
+            ("\"first".into(), TokenKind::String)
+        ]
+    );
+    assert_eq!(next, LineState::Normal);
+    let (tokens, next) = lex("a.cj", "second\"", next);
+    assert_eq!(tokens, [("\"".into(), TokenKind::String)]);
+    assert_eq!(next, LineState::Normal);
+}
+
+#[test]
+fn cangjie_hash_raw_strings_do_not_treat_quotes_as_multiline() {
+    let (tokens, next) = lex(
+        "a.cj",
+        r##"let a = #"raw"#; let b = 'a'; let c = 'text'"##,
+        LineState::Normal,
+    );
+    assert!(tokens.contains(&(r##"#"raw"#"##.into(), TokenKind::String)));
+    assert!(!tokens.contains(&("r'a'".into(), TokenKind::String)));
+    assert!(!tokens.contains(&(r#"'text'"#.into(), TokenKind::String)));
+    assert_eq!(next, LineState::Normal);
+}
+
+#[test]
 fn python_basics() {
     let (tokens, next) = lex("a.py", "def foo(x): return 'hi' # 注释", LineState::Normal);
     assert_eq!(

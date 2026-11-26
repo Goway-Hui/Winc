@@ -39,6 +39,10 @@ pub struct Hits {
     pub(crate) tree_segments: Vec<(usize, f32, f32, PathBuf)>,
     /// 选择面板本帧绘制的按钮区域，点击和悬停据此判定目标。
     pub(crate) picker_parts: Vec<(Rect, PickerPart)>,
+    /// 顶栏右端的运行配置菜单按钮；没有显示时为空。
+    pub(crate) top_run_menu: Option<Rect>,
+    /// 顶栏右端的运行按钮；没有显示时为空。
+    pub(crate) top_run_play: Option<Rect>,
     /// 各标签的位置，按绘制顺序排列。
     pub(crate) tabs: Vec<TabHit>,
     /// 绘制时记下的可点击位置。
@@ -147,6 +151,8 @@ impl Hits {
             tree_more,
             tree_segments,
             picker_parts,
+            top_run_menu,
+            top_run_play,
             tabs,
             outline,
             log,
@@ -203,6 +209,8 @@ impl Hits {
         *tree_more = None;
         tree_segments.clear();
         picker_parts.clear();
+        *top_run_menu = None;
+        *top_run_play = None;
         tabs.clear();
         outline.clear();
         log.clear();

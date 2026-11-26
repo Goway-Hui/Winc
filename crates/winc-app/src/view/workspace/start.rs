@@ -45,12 +45,16 @@ const ACTIONS: &[(StartAction, Action)] = if cfg!(target_os = "macos") {
         (StartAction::Settings, Action::Settings),
         (StartAction::NewFile, Action::NewFile),
         (StartAction::Open, Action::OpenFile),
+        (StartAction::NewCangjieProject, Action::CangjieNewProject),
+        (StartAction::NewCangjieFile, Action::CangjieNewFile),
     ]
 } else {
     &[
         (StartAction::Settings, Action::Settings),
         (StartAction::NewFile, Action::NewFile),
         (StartAction::Open, Action::OpenFile),
+        (StartAction::NewCangjieProject, Action::CangjieNewProject),
+        (StartAction::NewCangjieFile, Action::CangjieNewFile),
         (StartAction::OpenFolder, Action::OpenFolder),
     ]
 };
@@ -69,6 +73,8 @@ fn action_label(action: StartAction) -> &'static str {
     match action {
         StartAction::Settings => t!("workspace-start-settings"),
         StartAction::NewFile => t!("workspace-start-new-file"),
+        StartAction::NewCangjieProject => t!("workspace-start-new-cangjie"),
+        StartAction::NewCangjieFile => t!("workspace-start-new-cangjie-file"),
         StartAction::OpenFolder => t!("workspace-start-open-folder"),
         StartAction::Remote => t!("workspace-start-remote"),
         _ if cfg!(target_os = "macos") => t!("workspace-start-open"),
@@ -127,7 +133,8 @@ fn draw_start(app: &mut App, frame: &mut Frame<'_>, rise: f32) {
     } else {
         0.0
     };
-    let total = title_h + GAP + actions_h + recent_h;
+    let workflow_h = GAP + SECTION_TITLE + ROW;
+    let total = title_h + GAP + actions_h + workflow_h + recent_h;
     let w = WIDTH.min(editor.w - 48.0).max(0.0);
     let x = (editor.x + (editor.w - w) / 2.0).round();
     let mut y = (editor.y + ((editor.h - total) / 2.0 - 24.0).max(16.0) + rise).round();
@@ -160,6 +167,20 @@ fn draw_start(app: &mut App, frame: &mut Frame<'_>, rise: f32) {
         app.hits.start.push((row, action));
         y += ROW;
     }
+
+    y += GAP;
+    y = section_title(app, frame, t!("workspace-start-section-cangjie"), x, y, w);
+    let workflow = Rect::new(x, y, w, ROW);
+    ui_text_small(
+        frame,
+        app,
+        workflow.x + 10.0,
+        workflow,
+        t!("workspace-start-cangjie-workflow"),
+        app.palette.text_muted,
+        editor,
+    );
+    y += ROW;
 
     if recent == 0 {
         return;
@@ -640,6 +661,9 @@ fn action_icon(app: &App, frame: &mut Frame<'_>, action: StartAction, row: Rect)
     match action {
         StartAction::Settings => icons::gear(frame, (cx, cy), color, clip),
         StartAction::NewFile => icons::new_file(frame, (cx - 6.0, cy - 7.5), color, clip),
+        StartAction::NewCangjieProject | StartAction::NewCangjieFile => {
+            icons::new_file(frame, (cx - 6.0, cy - 7.5), color, clip);
+        }
         StartAction::Open if !cfg!(target_os = "macos") => {
             icons::files(frame, (cx, cy), 1.0, color, clip);
         }

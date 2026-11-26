@@ -724,6 +724,7 @@ impl App {
         };
         let revision = doc.revision;
         doc.execute(command, page, tab_width);
+        self.intelligence.cancel_for_edit();
         if let Some(input) = input {
             self.vim_typed(input);
         }
@@ -738,6 +739,11 @@ impl App {
 
         self.ensure_caret_visible();
         self.reset_blink();
+        if self.editor.active().is_some_and(|doc| {
+            doc.highlighter.language().id == "cangjie" && doc.revision != revision
+        }) {
+            self.intelligence.schedule_completion();
+        }
         self.request_redraw();
     }
 

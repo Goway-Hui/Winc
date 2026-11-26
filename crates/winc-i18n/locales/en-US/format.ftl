@@ -176,3 +176,7 @@ format-install-note-eslint = ESLint is usually installed in the project; this co
 format-install-note-clang-format = Xcode and the Command Line Developer Tools on macOS include clang-format.
 format-install-note-swift-format = Xcode 16 or later and the Command Line Developer Tools include swift-format.
 format-install-note-xmllint = xmllint comes preinstalled on macOS.
+format-install-note-cjfmt = cjfmt comes with the Cangjie SDK; make sure its tools/bin directory is on PATH.
+format-cjfmt-temp-failed = Couldn’t write the Cangjie formatter’s temporary file: { $error }
+format-cjfmt-read-failed = Couldn’t read the Cangjie formatter’s result: { $error }
+format-cjfmt-unsupported-host = cjfmt can currently format local files only

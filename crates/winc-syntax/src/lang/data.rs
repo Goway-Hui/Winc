@@ -196,6 +196,8 @@ pub(super) static TOML: Language = Language {
         "poetry.lock",
         "uv.lock",
         "pdm.lock",
+        "cjpm.toml",
+        "cjpm.lock",
     ],
     builtins: &["true", "false", "inf", "nan"],
     line_comments: &["#"],

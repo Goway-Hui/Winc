@@ -56,7 +56,7 @@ fn run_button(app: &mut App, button: RunButton) -> Option<(f32, f32)> {
     Some((rect.x + rect.w / 2.0, rect.y + rect.h / 2.0))
 }
 
-/// 按钮在面板的标签栏上，编辑区标签栏不让出位置；模块关着时不读文件。
+/// 按钮在面板的标签栏上，编辑区标签栏不让出位置；终端模块关着时仍读取配置，供顶栏按钮使用。
 #[test]
 fn the_buttons_show_in_the_panel_only_with_configurations() {
     let (mut app, dir, _log) = app_with_configs("run-buttons");
@@ -82,7 +82,10 @@ fn the_buttons_show_in_the_panel_only_with_configurations() {
     assert!(run_button(&mut app, RunButton::Start).is_some());
     app.config.terminal_enabled = Some(false);
     app.reload_run_configs();
-    assert!(app.run.list.is_empty());
+    assert!(!app.run.list.is_empty());
+    paint(&mut app);
+    assert!(app.hits.top_run_menu.is_some());
+    assert!(app.hits.top_run_play.is_some());
     clean(&dir);
 }
 

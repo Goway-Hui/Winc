@@ -150,6 +150,7 @@ impl App {
             };
             // 先回到上次的位置，为它记录的跳转（`run_when_loaded`）在后，以跳转为准。
             self.restore_text_place(index);
+            self.sync_lsp_documents();
             // 未读取的标签不参与磁盘同步，读取期间文件可能再次被修改：读完后按路径同步一次元数据。
             if let Some(path) = self.editor.documents[index].path.clone() {
                 self.sync_documents(|p| p == path);

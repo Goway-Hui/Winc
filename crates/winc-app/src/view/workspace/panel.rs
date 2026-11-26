@@ -956,6 +956,41 @@ pub(in crate::view) fn tooltip(app: &App) -> Option<(Rect, String)> {
             };
             Some((rect, label))
         }
+        Hover::DebugControl(control) => {
+            let rect = app
+                .debug
+                .ui
+                .control_hits
+                .iter()
+                .find(|(_, hit)| *hit == control)?
+                .0;
+            Some((rect, control.title().to_owned()))
+        }
+        Hover::Status(item @ crate::app::StatusItem::CangjieBuild) => {
+            let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
+            Some((
+                rect,
+                with_key(t!("cmd-cangjie-build"), Some(Action::CangjieBuild)),
+            ))
+        }
+        Hover::Status(item @ crate::app::StatusItem::CangjieTest) => {
+            let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
+            Some((
+                rect,
+                with_key(t!("cmd-cangjie-test"), Some(Action::CangjieTest)),
+            ))
+        }
+        Hover::Status(item @ crate::app::StatusItem::CangjieRun) => {
+            let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
+            Some((
+                rect,
+                with_key(t!("cmd-cangjie-run"), Some(Action::CangjieRun)),
+            ))
+        }
+        Hover::Status(item @ crate::app::StatusItem::CangjieDebug) => {
+            let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
+            Some((rect, with_key(t!("debug-start"), Some(Action::DebugStart))))
+        }
         Hover::Status(item @ crate::app::StatusItem::Terminal) => {
             let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
             let label = if app.terminal.open {
@@ -1000,6 +1035,21 @@ pub(in crate::view) fn tooltip(app: &App) -> Option<(Rect, String)> {
         Hover::Status(item @ crate::app::StatusItem::Update) => {
             let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
             Some((rect, crate::view::status::update_tooltip(app)?))
+        }
+        Hover::Status(item @ crate::app::StatusItem::LanguageService) => {
+            let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
+            let label = match app.lsp.status {
+                crate::app::lsp::Status::Unavailable => {
+                    t!("cangjie-lsp-unavailable-detail").to_owned()
+                }
+                crate::app::lsp::Status::Failed => t!(
+                    "cangjie-lsp-failed-detail",
+                    error = app.lsp.last_error.as_deref().unwrap_or_default()
+                )
+                .to_owned(),
+                _ => t!("cmd-cangjie-restart").to_owned(),
+            };
+            Some((rect, label))
         }
         Hover::Status(item @ crate::app::StatusItem::Settings) => {
             let rect = app.hits.status.iter().find(|(_, i)| *i == item)?.0;
@@ -1350,6 +1400,25 @@ pub(in crate::view) fn tooltip(app: &App) -> Option<(Rect, String)> {
             Some((hit.tab, label))
         }
         Hover::TabList => Some((app.tabs.list?, t!("workspace-tip-all-tabs").to_owned())),
+        Hover::TopRunMenu => {
+            let rect = app.hits.top_run_menu?;
+            let config = app.run.current()?;
+            Some((
+                rect,
+                format!("{}\n{}", t!("terminal-run-select"), config.command),
+            ))
+        }
+        Hover::TopRunPlay => {
+            let rect = app.hits.top_run_play?;
+            let config = app.run.current()?;
+            Some((
+                rect,
+                with_key(
+                    &format!("{} · {}", t!("cmd-run-configuration"), config.name),
+                    Some(Action::RunConfiguration),
+                ),
+            ))
+        }
         Hover::ViewTab(view) => {
             let rect = app.sidebar_tabs().into_iter().find(|(_, v)| *v == view)?.0;
             let label = match (view, app.commit_count_text()) {

@@ -55,8 +55,10 @@ impl Lexer<'_> {
             }
         }
 
-        if matches!(language.raw_strings, RawStrings::Rust | RawStrings::Swift)
-            && let Some((open, state)) = self.raw_opening(i)
+        if matches!(
+            language.raw_strings,
+            RawStrings::Rust | RawStrings::Swift | RawStrings::Cangjie
+        ) && let Some((open, state)) = self.raw_opening(i)
         {
             return Some((open, state.span(language)?));
         }
@@ -224,7 +226,8 @@ impl Lexer<'_> {
             return None;
         }
         let state = *RAW_STATES.get(hashes)?;
-        (chars.get(j + hashes) == Some(&'"')).then_some((j + hashes + 1 - i, state))
+        let quote = j + hashes;
+        (chars.get(quote) == Some(&'"')).then_some((quote + 1 - i, state))
     }
 
     /// 处理 `from` 处开始的插值（开头之后的部分），返回收尾的 `closer` 之后的位置。

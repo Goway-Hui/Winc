@@ -50,6 +50,16 @@ pub enum StatusKey {
     Indent,
     /// 语言。
     Language,
+    /// 仓颉语言服务状态与当前文件的诊断数量。
+    LanguageService,
+    /// 构建仓颉项目。
+    CangjieBuild,
+    /// 测试仓颉项目。
+    CangjieTest,
+    /// 运行仓颉项目。
+    CangjieRun,
+    /// 调试仓颉项目。
+    CangjieDebug,
     /// 新版本提示。
     Update,
 }
@@ -242,7 +252,7 @@ impl<K: Copy + Ord> StatusMotion<K> {
     }
 
     /// 返回项 `key` 显示的文字；没有该项或该项正在消失时为 `None`。只有 PDF 预览的测试使用。
-    #[cfg(all(test, any(target_os = "macos", windows)))]
+    #[cfg(test)]
     pub(crate) fn text(&self, key: K) -> Option<&str> {
         let row = self.rows.iter().find(|r| r.key == key)?;
         (!matches!(row.presence, Presence::Leaving(_))).then_some(row.text.as_str())

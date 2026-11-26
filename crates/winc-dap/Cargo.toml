@@ -1,0 +1,16 @@
+[package]
+name = "winc-dap"
+description = "Debug Adapter Protocol client with loopback TCP transport."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

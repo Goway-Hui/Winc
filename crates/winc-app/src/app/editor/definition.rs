@@ -187,7 +187,7 @@ impl App {
     ///
     /// 名字由当前文件的语言决定（见 [`Language::name_range`]）：CSS 的 `my-class`、PHP 的
     /// `$total`、Ruby 的 `valid?` 都是一个名字。
-    pub(in crate::app) fn name_span(&self) -> Option<(usize, usize)> {
+    pub(crate) fn name_span(&self) -> Option<(usize, usize)> {
         let doc = self.editor.active()?;
         let selection = doc.selection;
         if !selection.is_empty() {
@@ -228,7 +228,7 @@ impl App {
     /// 时取第一处；没有定义时在项目中后台搜索，只有一处就直接跳转，有多处则列出供选择。光标原本就在
     /// 定义上时改为列出用法：局部变量只在当前文件中找（见 [`Self::show_local_usages`]），其余在项目
     /// 中找（见 [`Self::show_usages`]）；重新赋值（之前已有同名的定义）时不算在定义上。
-    pub(in crate::app) fn go_to_definition(&mut self) {
+    pub(in crate::app) fn local_go_to_definition(&mut self) {
         let Some(name) = self.name_at_caret() else {
             return;
         };
@@ -329,6 +329,15 @@ impl App {
             hinted: false,
         };
         self.start_place_search(search, &root, &query);
+    }
+
+    /// 优先请求语言服务器定义；不可用或没有结果时退回本地/项目搜索。
+    pub(in crate::app) fn go_to_definition(&mut self) {
+        if self.lsp.status == super::lsp::Status::Ready {
+            self.request_lsp_definition();
+        } else {
+            self.local_go_to_definition();
+        }
     }
 
     /// 列出局部变量 `filter` 的名字在所在函数中的用法；`line` 是定义所在的行，结果中排除。
@@ -736,7 +745,7 @@ impl App {
     /// 查找引用（`⇧F12`）：对光标所在的名字做全字匹配、区分大小写的全局搜索。
     ///
     /// 结果显示在侧栏的搜索面板中。没有打开目录时在状态栏提示。
-    pub(in crate::app) fn find_references(&mut self) {
+    pub(in crate::app) fn local_find_references(&mut self) {
         if self.editor.workspace.is_none() {
             self.flash(t!("editor-open-folder-first"));
             return;
@@ -758,6 +767,15 @@ impl App {
         self.focus = Focus::Results;
         self.relayout();
         self.request_redraw();
+    }
+
+    /// 优先请求语言服务器引用；不可用或没有结果时退回现有全局搜索。
+    pub(in crate::app) fn find_references(&mut self) {
+        if self.lsp.status == super::lsp::Status::Ready {
+            self.request_lsp_references();
+        } else {
+            self.local_find_references();
+        }
     }
 }
 

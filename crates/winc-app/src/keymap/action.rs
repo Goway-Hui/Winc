@@ -41,6 +41,16 @@ pub enum Action {
     /// 选择项目文件并打开。
     OpenProject,
     RemoteConnect,
+    /// 新建仓颉项目。
+    CangjieNewProject,
+    /// 新建仓颉源文件。
+    CangjieNewFile,
+    /// 构建、测试或运行当前仓颉项目。
+    CangjieBuild,
+    /// 测试当前仓颉项目。
+    CangjieTest,
+    /// 运行当前仓颉项目。
+    CangjieRun,
     RemoteDisconnect,
     OpenRecent,
     Save,
@@ -363,6 +373,18 @@ pub enum Action {
     EnableTerminal,
     /// 运行当前选中的配置；运行中时重新运行。
     RunConfiguration,
+    /// 开始调试；已暂停时继续。
+    DebugStart,
+    /// 停止调试。
+    DebugStop,
+    /// 单步跳过。
+    DebugNext,
+    /// 单步进入。
+    DebugStepIn,
+    /// 单步跳出。
+    DebugStepOut,
+    /// 在当前行切换断点。
+    ToggleBreakpoint,
     /// 停止当前选中的配置。
     StopConfiguration,
     /// 打开运行配置文件。
@@ -493,6 +515,11 @@ impl Action {
             AddFolder => t!("cmd-add-folder"),
             SaveProjectAs => t!("cmd-save-project-as"),
             OpenProject => t!("cmd-open-project"),
+            CangjieNewProject => t!("cmd-cangjie-new-project"),
+            CangjieNewFile => t!("cmd-cangjie-new-file"),
+            CangjieBuild => t!("cmd-cangjie-build"),
+            CangjieTest => t!("cmd-cangjie-test"),
+            CangjieRun => t!("cmd-cangjie-run"),
             RemoteConnect => t!("cmd-remote-connect"),
             RemoteDisconnect => t!("cmd-remote-disconnect"),
             OpenRecent => t!("cmd-open-recent"),
@@ -741,6 +768,12 @@ impl Action {
             ToggleTerminalPanel => t!("cmd-toggle-terminal-panel"),
             EnableTerminal => t!("cmd-enable-terminal"),
             RunConfiguration => t!("cmd-run-configuration"),
+            DebugStart => t!("debug-start"),
+            DebugStop => t!("debug-stop"),
+            DebugNext => t!("debug-next"),
+            DebugStepIn => t!("debug-step-in"),
+            DebugStepOut => t!("debug-step-out"),
+            ToggleBreakpoint => t!("cmd-toggle-breakpoint"),
             SendHttpRequest => t!("cmd-send-http-request"),
             StopConfiguration => t!("cmd-stop-configuration"),
             EditRunConfigurations => t!("cmd-edit-run-configurations"),
@@ -822,13 +855,14 @@ impl Action {
             | RecordKeys
             | InstallShellCommand
             | UninstallShellCommand => Group::General,
-            NewFile | OpenFile | OpenFolder | OpenProject | AddFolder | SaveProjectAs
-            | RemoteConnect | RemoteDisconnect | Save | SaveAs | CloseTab | CloseOtherTabs
-            | CloseAllTabs | ReopenClosed | NextTab | PreviousTab | FocusTab1 | FocusTab2
-            | FocusTab3 | FocusTab4 | FocusTab5 | FocusTab6 | FocusTab7 | FocusTab8 | FocusTab9
-            | SwitchTab | SwitchTabBack | CloseFolder | CloseWindow | CopyPath
-            | CopyRelativePath | RevealInFinder | CopyActivePath | CopyKeyPath
-            | RevealActiveFile | RevealActiveInTree | OpenInTerminal | Quit => Group::File,
+            NewFile | CangjieNewFile | OpenFile | OpenFolder | OpenProject | AddFolder
+            | SaveProjectAs | CangjieNewProject | RemoteConnect | RemoteDisconnect | Save
+            | SaveAs | CloseTab | CloseOtherTabs | CloseAllTabs | ReopenClosed | NextTab
+            | PreviousTab | FocusTab1 | FocusTab2 | FocusTab3 | FocusTab4 | FocusTab5
+            | FocusTab6 | FocusTab7 | FocusTab8 | FocusTab9 | SwitchTab | SwitchTabBack
+            | CloseFolder | CloseWindow | CopyPath | CopyRelativePath | RevealInFinder
+            | CopyActivePath | CopyKeyPath | RevealActiveFile | RevealActiveInTree
+            | OpenInTerminal | Quit => Group::File,
             NewWindow | OpenRecent | CopyReference | CopyAbsoluteReference => Group::File,
             Undo
             | Redo
@@ -1018,6 +1052,9 @@ impl Action {
             | ToggleTerminalPanel
             | EnableTerminal
             | RunConfiguration
+            | CangjieBuild
+            | CangjieTest
+            | CangjieRun
             | StopConfiguration
             | EditRunConfigurations
             | SendHttpRequest
@@ -1063,6 +1100,9 @@ impl Action {
             | Unsplit
             | NextPane
             | PreviousPane => Group::View,
+            DebugStart | DebugStop | DebugNext | DebugStepIn | DebugStepOut | ToggleBreakpoint => {
+                Group::View
+            }
         }
     }
 
@@ -1232,7 +1272,9 @@ impl Action {
             | Action::GitRevertChange => Some(Module::Git),
             Action::ToggleTerminal
             | Action::ToggleTerminalPanel
-            | Action::RunConfiguration
+            | Action::CangjieBuild
+            | Action::CangjieTest
+            | Action::CangjieRun
             | Action::StopConfiguration
             | Action::EditRunConfigurations
             | Action::ClearTerminal

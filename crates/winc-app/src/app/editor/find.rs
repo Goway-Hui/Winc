@@ -622,6 +622,9 @@ impl App {
             PromptKind::StashFiles(paths) => self.git_stash_files(&input, paths),
             PromptKind::NewTag { at } => self.git_new_tag(&input, at),
             PromptKind::RenameBranch { old } => self.git_rename_branch(old, &input),
+            PromptKind::CangjieProject { parent } => {
+                self.create_cangjie_project(&parent, &input);
+            }
             PromptKind::VimSearch { .. } | PromptKind::VimCommand => {
                 self.vim_prompt_submit(&input);
             }

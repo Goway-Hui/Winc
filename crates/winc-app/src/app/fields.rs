@@ -45,6 +45,7 @@ impl App {
             | Focus::SearchDock
             | Focus::Settings
             | Focus::CommitList
+            | Focus::DebugPanel
             | Focus::Outline
             | Focus::Terminal => None,
         }

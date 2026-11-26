@@ -6,9 +6,110 @@ use crate::app::TabHit;
 
 /// 绘制顶栏：底色与编辑区相同，与下方的代码区之间不绘制分隔线。
 ///
-/// 标签为胶囊形状，一直排到顶栏右端；右端不放按钮。
+/// 标签为胶囊形状，一直排到顶栏右端；右端显示运行配置和运行按钮。没有运行配置时右端不放按钮。
 pub(in crate::view) fn draw_top_bar(app: &mut App, frame: &mut Frame<'_>) {
-    draw_tabs(app, frame);
+    let area = app.layout.tabs;
+    let run = top_run_buttons(app, frame, area);
+    let tabs = match run {
+        Some(buttons) => Rect::new(
+            area.x,
+            area.y,
+            (buttons.menu.x - RUN_TABS_GAP - area.x).max(0.0),
+            area.h,
+        ),
+        None => area,
+    };
+    draw_tabs(app, frame, tabs);
+    if let Some(buttons) = run {
+        draw_top_run(app, frame, buttons);
+    }
+}
+
+/// 顶栏右端运行配置组的两个按钮。
+#[derive(Clone, Copy)]
+struct TopRunButtons {
+    /// 当前配置名和下拉箭头。
+    menu: Rect,
+    /// 运行（运行中是重新运行）。
+    play: Rect,
+}
+
+/// 运行配置组和标签栏之间的距离（逻辑像素）。
+const RUN_TABS_GAP: f32 = 8.0;
+
+/// 顶栏右端运行配置组的位置；没有运行配置、空间不够或正在显示预览切换时为空。
+fn top_run_buttons(app: &App, frame: &mut Frame<'_>, area: Rect) -> Option<TopRunButtons> {
+    let config = app.run.current()?;
+    // 预览切换和「在浏览器中打开」也占标签栏右端，运行组排在它们左边。
+    let right = [app.layout.preview, app.layout.browser]
+        .into_iter()
+        .filter(|rect| rect.w > 0.0)
+        .map(|rect| rect.x)
+        .fold(area.right(), f32::min);
+    let name = frame.measure(FontKind::Ui, app.fonts.ui, &config.name);
+    let menu_w = (name + 30.0).clamp(54.0, 120.0);
+    let total = menu_w + TAB_GAP + BUTTON;
+    // 至少给标签栏留下几个标签的宽度，窗口太窄时不显示运行组。
+    if right - area.x < total + 140.0 {
+        return None;
+    }
+    let button_y = area.y + (area.h - BUTTON) / 2.0;
+    let menu = Rect::new(right - total, button_y, menu_w, BUTTON);
+    let play = Rect::new(menu.right() + TAB_GAP, button_y, BUTTON, BUTTON);
+    Some(TopRunButtons { menu, play })
+}
+
+/// 绘制运行配置下拉按钮和运行按钮：配置名和箭头，运行中是重新运行的图标。
+fn draw_top_run(app: &mut App, frame: &mut Frame<'_>, buttons: TopRunButtons) {
+    use crate::app::MenuButton;
+    let p = app.palette;
+    let area = app.layout.tabs;
+    let Some(config) = app.run.current() else {
+        return;
+    };
+    let open = app.overlays.menu_button == Some(MenuButton::TopRun);
+    let hovered_menu = app.pointer.hover == Hover::TopRunMenu;
+    let hovered_play = app.pointer.hover == Hover::TopRunPlay;
+
+    draw_button(frame, p, buttons.menu, area, hovered_menu, open);
+    let color = if open || hovered_menu {
+        p.text
+    } else {
+        p.text_muted
+    };
+    let room = buttons.menu.w - 26.0;
+    let name = ellipsize(frame, &config.name, app.fonts.ui, room);
+    ui_text(
+        frame,
+        app,
+        buttons.menu.x + 9.0,
+        buttons.menu,
+        &name,
+        color,
+        buttons.menu,
+    );
+    icons::chevron(
+        frame,
+        (
+            buttons.menu.right() - 12.0,
+            buttons.menu.y + buttons.menu.h / 2.0,
+        ),
+        8.0,
+        icons::Direction::Down,
+        color,
+        buttons.menu,
+    );
+
+    draw_button(frame, p, buttons.play, area, hovered_play, false);
+    let center = (buttons.play.x + BUTTON / 2.0, buttons.play.y + BUTTON / 2.0);
+    if app.run_config_running() {
+        icons::refresh(frame, center, p.git_added, buttons.play);
+    } else {
+        icons::play(frame, center, p.git_added, buttons.play);
+    }
+
+    app.hits.top_run_menu = Some(buttons.menu);
+    app.hits.top_run_play = Some(buttons.play);
 }
 
 /// 绘制顶栏右端的窗口按钮（最小化、最大化或还原、关闭），由应用绘制标题栏时才有。
@@ -80,8 +181,8 @@ const TAB_DIVIDER: f32 = 14.0;
 /// （`editor.fullTabNames`，默认）时不设上限，只在一个标签比标签栏放得下的还宽时截短；关着时
 /// 最宽 [`TAB_WIDTH_MAX`]，文本更长时截短。用鼠标关闭标签后，移到关掉的位置上的标签暂用锁定的
 /// 宽度（见 `TabBar::width_lock`）。
-fn tab_labels(app: &App, frame: &mut Frame<'_>) -> Vec<TabLabel> {
-    let widest = tab_width_limit(app);
+fn tab_labels(app: &App, frame: &mut Frame<'_>, area: Rect) -> Vec<TabLabel> {
+    let widest = tab_width_limit(app, area);
     let docs = app.editor.tabs();
     // 只有同名的标签需要标注上级目录：先数出各名字的标签数，名字唯一的标签不再与其余全部标签
     // 逐一比较（每帧都要计算，标签多时是标签数的平方）。
@@ -149,11 +250,11 @@ const TAB_LIST_GAP: f32 = 2.0;
 /// 显示完整文件名时是标签栏在标签放不下时露出标签的宽度（右端让出新建按钮和「⌄」）：一个标签
 /// 总能整个看见，文件名比这还长才截短；标签栏比 [`TAB_WIDTH_MAX`] 还窄时按它。不显示完整文件名
 /// 时就是 [`TAB_WIDTH_MAX`]。
-fn tab_width_limit(app: &App) -> f32 {
+fn tab_width_limit(app: &App, area: Rect) -> f32 {
     if app.config.full_tab_names == Some(false) {
         return TAB_WIDTH_MAX;
     }
-    let view = app.layout.tabs.w - TAB_INSET - 2.0 * BUTTON - TAB_LIST_GAP - 6.0;
+    let view = area.w - TAB_INSET - 2.0 * BUTTON - TAB_LIST_GAP - 6.0;
     view.floor().max(TAB_WIDTH_MAX)
 }
 
@@ -162,14 +263,13 @@ fn tab_width_limit(app: &App) -> f32 {
 ///
 /// 放不下时可以横向滚动，被裁掉的一端渐隐，新建按钮和列出全部标签的「⌄」固定在右端。
 /// 同时更新 `app.tabs` 中的几何信息和各标签的命中区域。
-fn draw_tabs(app: &mut App, frame: &mut Frame<'_>) {
+fn draw_tabs(app: &mut App, frame: &mut Frame<'_>, area: Rect) {
     let p = app.palette;
-    let area = app.layout.tabs;
     let top = area.y + (area.h - TAB_HEIGHT) / 2.0;
     let button_y = area.y + (area.h - BUTTON) / 2.0;
 
     app.note_opened_tabs();
-    let mut labels = tab_labels(app, frame);
+    let mut labels = tab_labels(app, frame, area);
     // 刚打开的标签按长出来的程度算宽度：右边的标签、新建按钮跟着逐步让开
     // （`App::note_opened_tabs`）。
     let grow: Vec<f32> = app

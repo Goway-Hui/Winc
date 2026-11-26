@@ -152,6 +152,10 @@ pub struct Config {
     pub markdown_typewriter: Option<bool>,
     /// 可编辑的预览中用鼠标选中文字后是否显示格式工具栏，默认为是。
     pub markdown_selection_toolbar: Option<bool>,
+    /// Executable to debug. Relative paths are resolved from the opened project root.
+    pub debug_program: Option<String>,
+    /// Optional DAP adapter executable. Defaults to the Cangjie SDK's lldb-vscode.
+    pub debug_adapter: Option<String>,
     /// 编译 LaTeX 的程序：完整路径或 `PATH` 里的程序名；未设置时自动查找。
     pub latex_path: Option<String>,
     /// 粘贴、拖入 Markdown 的图片的目录，相对文档所在的目录，`${filename}` 表示文档主名；未设置
@@ -320,6 +324,12 @@ pub struct Config {
     pub ai_timeout: Option<u64>,
     /// 保存时先格式化，默认为否。
     pub format_on_save: Option<bool>,
+    /// 仓颉 SDK 根目录；未设置时从 `PATH`、`CANGJIE_HOME` 和 `~/.cjv` 查找。
+    pub cangjie_sdk_path: Option<String>,
+    /// 仓颉 `LSPServer` 路径；未设置时使用 SDK 中的 `LSPServer`。
+    pub cangjie_lsp_path: Option<String>,
+    /// 是否为仓颉文件启用语言服务，默认为是。
+    pub cangjie_lsp_enabled: Option<bool>,
     /// 保存时不格式化的语言（语言的 id）；手动格式化（`⇧⌥F`）仍然生效。
     pub format_on_save_exclude: Vec<String>,
     /// 各语言的格式化命令，键是语言的 id。

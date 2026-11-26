@@ -31,6 +31,52 @@ fn detects_by_name_and_extension() {
 }
 
 #[test]
+fn detects_cangjie_files() {
+    assert_eq!(detect("main.CJ").id, "cangjie");
+    assert_eq!(detect("build.cj").name, "Cangjie · 仓颉");
+    assert_eq!(detect("cjpm.toml").name, "TOML");
+    assert_eq!(detect("cjpm.lock").name, "TOML");
+    assert_eq!(detect("main.cj.d").id, "cangjie");
+    assert_eq!(detect("library.d").id, "text");
+}
+
+#[test]
+fn cangjie_keywords_and_literals_match_the_language() {
+    let cangjie = detect("a.cj");
+    for word in [
+        "func",
+        "class",
+        "interface",
+        "extend",
+        "macro",
+        "quote",
+        "spawn",
+        "Int32",
+    ] {
+        assert!(cangjie.keywords.contains(&word), "{word}");
+    }
+    assert!(cangjie.nested_comments);
+    assert!(!cangjie.multiline_strings);
+    assert_eq!(cangjie.raw_strings, RawStrings::Cangjie);
+    assert!(!cangjie.builtins.contains(&"Int"));
+    assert!(!cangjie.builtins.contains(&"Char"));
+    assert_eq!(cangjie.indent_unit, "    ");
+    assert_eq!(
+        cangjie.file_name("untitled").as_deref(),
+        Some("untitled.cj")
+    );
+    // 与 Kotlin、Swift 等共享词法机制，但保留独立的关键字表。
+    assert!(!detect("a.kt").keywords.contains(&"func"));
+    assert!(!detect("a.swift").keywords.contains(&"spawn"));
+}
+
+#[test]
+fn cangjie_markdown_fences_and_lookup_work() {
+    let found = fence_language("cangjie").and_then(language_at).unwrap();
+    assert!(std::ptr::eq(found, &CANGJIE));
+}
+
+#[test]
 fn dockerfile_directives_are_keywords_only_for_dockerfile() {
     let dockerfile = detect("Dockerfile");
     assert!(dockerfile.keywords.contains(&"FROM"));

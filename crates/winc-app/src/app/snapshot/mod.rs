@@ -19,6 +19,8 @@ use crate::layout::{
 };
 
 mod animation;
+mod cangjie;
+mod debugger;
 mod editor;
 #[cfg(unix)]
 mod git;

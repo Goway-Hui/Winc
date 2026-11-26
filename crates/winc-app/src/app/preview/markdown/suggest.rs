@@ -28,6 +28,12 @@ pub(crate) enum Hit {
     Heading(u8, String, String),
     /// 写作命令。
     Command(super::slash::Slash),
+    /// 语言服务器补全项：标签、详情和插入文本。
+    Language {
+        label: String,
+        detail: String,
+        insert: Option<String>,
+    },
 }
 
 /// 补全的对象：链接地址，或 `/` 之后的命令名。
@@ -35,6 +41,8 @@ pub(crate) enum Hit {
 pub(crate) enum Kind {
     Link(Target),
     Command,
+    /// 光标处的语言服务器补全。
+    Language,
 }
 
 /// 补全地址的状态。
@@ -105,6 +113,7 @@ impl App {
             Kind::Command => self.command_hits(&basis.0),
             Kind::Link(Target::Anchor) => self.heading_hits(&basis.0),
             Kind::Link(link) => self.file_hits(&basis.0, link == Target::Image),
+            Kind::Language => Vec::new(),
         };
         let suggest = &mut self.preview.markdown.suggest;
         let selected = if refiltered { 0 } else { suggest.selected };
@@ -283,7 +292,32 @@ impl App {
             return;
         };
         let hit = hit.clone();
-        suggest.at = None;
+        if let Hit::Language { insert, label, .. } = hit.clone() {
+            let Some((id, revision)) = self.intelligence_completion_revision() else {
+                return;
+            };
+            let Some(doc) = self
+                .editor
+                .active_mut()
+                .filter(|doc| doc.id == id && doc.revision == revision)
+            else {
+                return;
+            };
+            let insert = insert.unwrap_or_else(|| label.clone());
+            let start = start.min(doc.selection.head);
+            doc.selection = winc_core::Selection::new(start, doc.selection.head);
+            self.run(winc_editor::Command::Insert(insert));
+            self.flash(t!("cangjie-completion-accepted", label = label));
+            self.preview.markdown.suggest.seen = Some((
+                id,
+                self.editor
+                    .active()
+                    .map(|doc| doc.revision)
+                    .unwrap_or(revision),
+            ));
+            self.request_redraw();
+            return;
+        }
         self.hits.suggest_card = None;
         if self.editor.active().is_none_or(|d| d.id != id) {
             return;
@@ -309,7 +343,7 @@ impl App {
         let target = match &hit {
             Hit::File(_, file) => winc_editor::paste::link_target(dir, root.as_deref(), file),
             Hit::Heading(_, _, slug) => format!("#{slug}"),
-            Hit::Command(_) => return,
+            Hit::Command(_) | Hit::Language { .. } => return,
         };
         let caret = doc.selection.head.min(rope.len_chars());
         let closed = caret < rope.len_chars() && rope.char(caret) == ')';

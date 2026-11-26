@@ -232,9 +232,20 @@ fn trust_key(root: &Path, config: &RunConfig) -> PathBuf {
     key.push(&config.name);
     PathBuf::from(key)
 }
+/// 调试配置的信任键：与运行配置分开，内容改变后重新询问。
+pub(crate) fn debug_trust_key(root: &Path, config: &RunConfig) -> PathBuf {
+    let mut key = run_configs_path(root).into_os_string();
+    key.push(std::path::MAIN_SEPARATOR_STR);
+    key.push("debug");
+    key.push(std::path::MAIN_SEPARATOR_STR);
+    key.push(&config.name);
+    PathBuf::from(key)
+}
 
 impl App {
-    /// 在后台重新读取当前目录的运行配置；终端模块关着或没有打开目录时清空。
+    /// 在后台重新读取当前目录的运行配置；没有打开目录时清空。
+    ///
+    /// 顶栏的运行按钮不依赖终端模块是否启用：模块关着时也能从项目文件识别命令。
     pub(in crate::app) fn reload_run_configs(&mut self) {
         self.reload_run_configs_then(|_| {});
     }
@@ -245,8 +256,8 @@ impl App {
         self.run.loads += 1;
         self.run.after.push(Box::new(after));
         let load = self.run.loads;
-        let root = self.editor.root().filter(|_| self.terminal_enabled());
-        let Some(root) = root.map(Path::to_path_buf) else {
+        let root = self.editor.root().map(Path::to_path_buf);
+        let Some(root) = root else {
             self.run_configs_loaded(Vec::new(), Vec::new(), false);
             return;
         };
@@ -287,6 +298,22 @@ impl App {
         self.run.detected = detected;
         let changed = self.run.list != list;
         self.run.list = list;
+        // 仓颉项目每次打开都从「run」开始：顶栏的绿色按钮直接运行程序。用户选过其他配置时保留。
+        let selected = self.run.selected.as_deref();
+        if self.cangjie_project_open()
+            && !self
+                .run
+                .list
+                .iter()
+                .any(|c| Some(c.name.as_str()) == selected)
+        {
+            self.run.selected = self
+                .run
+                .list
+                .iter()
+                .find(|c| c.name == "run")
+                .map(|c| c.name.clone());
+        }
         if self.run.problems != problems {
             if let Some(problem) = problems.first() {
                 self.notify(
@@ -319,6 +346,7 @@ impl App {
         let session = self.current_session();
         let selected = session.and_then(|session| session.run.clone());
         self.switch_run_configs(selected);
+        self.load_debug_breakpoints();
     }
 
     /// 一批文件变化里有运行配置文件时重新读取。
@@ -526,7 +554,7 @@ impl App {
     }
 
     /// 打开的目录在远端主机上时提示没有运行配置并返回 `true`：配置中的命令只在本机的终端里运行。
-    fn remote_has_no_run_configs(&mut self) -> bool {
+    pub(in crate::app) fn remote_has_no_run_configs(&mut self) -> bool {
         let remote = self.editor.root().is_some_and(winc_backend::is_remote);
         if remote {
             self.notify(NoticeKind::Warning, t!("terminal-run-remote"));

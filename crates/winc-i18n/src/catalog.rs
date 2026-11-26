@@ -28,6 +28,8 @@ catalog![
     "config",
     "format",
     "menu",
+    "cangjie",
+    "debug",
 ];
 
 /// 返回 `locale` 的各文件名及其内容。

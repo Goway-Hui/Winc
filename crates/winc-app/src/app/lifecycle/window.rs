@@ -730,6 +730,10 @@ impl App {
     /// 绘制一帧之前推进动画、滚动和预览，并重新排版。
     pub(in crate::app) fn prepare_frame(&mut self) {
         self.vim_sync();
+        // Vim、格式化、撤销等所有文本改动都会递增 revision；仅在集合变化时同步，避免逐帧复制文本。
+        if self.lsp.documents_changed(&self.editor.documents) {
+            self.ensure_lsp_started();
+        }
         self.settle_animations();
         self.advance_wheel_glide();
         self.advance_fling(Instant::now());

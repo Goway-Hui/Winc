@@ -18,6 +18,8 @@ fn no_history_starts_on_the_start_page() {
         StartAction::Settings,
         StartAction::NewFile,
         StartAction::Open,
+        StartAction::NewCangjieProject,
+        StartAction::NewCangjieFile,
     ];
     if !cfg!(target_os = "macos") {
         expected.push(StartAction::OpenFolder);

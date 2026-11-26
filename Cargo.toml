@@ -29,7 +29,12 @@ winc-typeset = { path = "crates/winc-typeset" }
 winc-vim = { path = "crates/winc-vim" }
 winc-watch = { path = "crates/winc-watch" }
 
+winc-lsp = { path = "crates/winc-lsp" }
+winc-dap = { path = "crates/winc-dap" }
 # 只把 LF、CR、CRLF 当换行。默认的 `unicode_lines` 还认 VT、FF、U+0085、U+2028、U+2029，
+# JSON-RPC / LSP 消息序列化，版本沿用锁文件兼容范围。
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 # 行号会和编译器、git、grep 报的对不上（C 和 Python 源码里常见分页符 FF）。
 ropey = { version = "1.6", default-features = false, features = ["simd", "cr_lines"] }
 unicode-segmentation = "1"

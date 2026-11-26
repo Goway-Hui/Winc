@@ -161,7 +161,16 @@ pub struct State {
     pub vim_searches: Vec<String>,
     /// 是否已经提示过 Vim 模式接管了编辑区也在用的 `Ctrl` 键：只在第一次遇到时提示。
     pub vim_keys_noticed: bool,
+    /// 各项目的调试断点：目录 → 文件 → (零基行, 零基字符列, 是否启用)。
+    pub debug_breakpoints: DebugBreakpoints,
 }
+
+/// 一个文件保存的断点：(零基行, 零基字符列, 是否启用)。
+pub type BreakpointRow = (usize, usize, bool);
+/// 一个项目按文件保存的断点。
+pub type ProjectBreakpoints = BTreeMap<PathBuf, Vec<BreakpointRow>>;
+/// 所有项目按目录和文件保存的断点。
+pub type DebugBreakpoints = BTreeMap<PathBuf, ProjectBreakpoints>;
 
 /// Vim 模式的两种历史各自记录的条数上限（条）。
 ///
@@ -651,6 +660,7 @@ impl State {
             .take(Self::RECENT_LANGUAGES)
             .map(str::to_owned)
             .collect();
+        state.debug_breakpoints = read_debug_breakpoints(root.get("debugBreakpoints"));
         state.stay_outside_applications = root
             .get("stayOutsideApplications")
             .and_then(Json::as_bool)
@@ -947,6 +957,25 @@ impl State {
             Json::object(items)
         });
         fields.push(("sessions", Json::Array(sessions.collect())));
+        if !self.debug_breakpoints.is_empty() {
+            let projects = self.debug_breakpoints.iter().map(|(root, files)| {
+                let files = files.iter().map(|(path, breakpoints)| {
+                    let values = breakpoints.iter().map(|&(line, column, enabled)| {
+                        Json::object([
+                            ("line".to_owned(), Json::Number(line as f64)),
+                            ("column".to_owned(), Json::Number(column as f64)),
+                            ("enabled".to_owned(), Json::Bool(enabled)),
+                        ])
+                    });
+                    (
+                        path.to_string_lossy().into_owned(),
+                        Json::Array(values.collect()),
+                    )
+                });
+                (root.to_string_lossy().into_owned(), Json::object(files))
+            });
+            fields.push(("debugBreakpoints", Json::object(projects)));
+        }
 
         if !self.remote_keys.is_empty() {
             let keys = (self.remote_keys.iter())
@@ -1135,6 +1164,30 @@ impl State {
     pub fn approve_command_only(&mut self, folder: &Path, command: &str) {
         self.approved_commands.retain(|(p, _)| p != folder);
         self.approve_command(folder, command);
+    }
+    /// Replaces one project's persisted debugger breakpoints.
+    pub fn remember_debug_breakpoints(
+        &mut self,
+        root: &Path,
+        breakpoints: Vec<(PathBuf, Vec<BreakpointRow>)>,
+    ) {
+        let mut files = BTreeMap::new();
+        for (path, values) in breakpoints {
+            files.insert(path, values);
+        }
+        if files.is_empty() {
+            self.debug_breakpoints.remove(root);
+        } else {
+            self.debug_breakpoints.insert(root.to_path_buf(), files);
+        }
+    }
+
+    /// Returns persisted debugger breakpoints for one project.
+    pub fn debug_breakpoints(&self, root: &Path) -> ProjectBreakpoints {
+        self.debug_breakpoints
+            .get(root)
+            .cloned()
+            .unwrap_or_default()
     }
 
     /// 返回用户信任 Git 仓库 `root` 的配置时记下的指纹；没有信任过时返回 `None`。
@@ -1492,3 +1545,33 @@ use terminal::{read_terminal_groups, terminal_groups_json};
 
 #[cfg(test)]
 mod tests;
+
+fn read_debug_breakpoints(value: Option<&Json>) -> DebugBreakpoints {
+    let Some(projects) = value.and_then(Json::as_object) else {
+        return BTreeMap::new();
+    };
+    projects
+        .iter()
+        .filter_map(|(root, files)| {
+            let files = files.as_object()?;
+            let files = files
+                .iter()
+                .filter_map(|(path, values)| {
+                    let values = values
+                        .as_array()?
+                        .iter()
+                        .filter_map(|value| {
+                            let value = value.as_object()?;
+                            let line = value.get("line")?.as_number()?.max(0.0) as usize;
+                            let column = value.get("column")?.as_number()?.max(0.0) as usize;
+                            let enabled = value.get("enabled")?.as_bool()?;
+                            Some((line, column, enabled))
+                        })
+                        .collect();
+                    Some((PathBuf::from(path), values))
+                })
+                .collect();
+            Some((PathBuf::from(root), files))
+        })
+        .collect()
+}

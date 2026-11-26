@@ -18,6 +18,7 @@ pub(super) mod format;
 pub(crate) mod hex;
 pub(super) mod hint;
 pub(crate) mod http;
+pub(super) mod intelligence;
 pub(crate) mod links;
 pub(super) mod navigation;
 pub(super) mod paste;

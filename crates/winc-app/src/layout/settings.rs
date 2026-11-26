@@ -162,6 +162,12 @@ pub enum Setting {
     ReleaseNotes,
     /// 「关于」页的官网链接。
     Website,
+    /// 仓颉 SDK 根目录（`cangjie.sdkPath`）。
+    CangjieSdkPath,
+    /// 仓颉 `LSPServer` 路径（`cangjie.lspPath`）。
+    CangjieLspPath,
+    /// 仓颉语言服务开关（`cangjie.lspEnabled`）。
+    CangjieLspEnabled,
     /// 「关于」页的源代码仓库（GitHub）链接。
     Repository,
     /// 「关于」页的社区群组（Telegram）链接。
@@ -396,6 +402,7 @@ impl Setting {
             S::Version | S::Updates | S::ReleaseNotes | S::Website | S::Repository => {
                 SettingsPage::About
             }
+            S::CangjieSdkPath | S::CangjieLspPath | S::CangjieLspEnabled => SettingsPage::Cangjie,
             S::Community | S::License => SettingsPage::About,
             S::Keymap | S::KeyMatches | S::KeySearch => SettingsPage::Keys,
         }
@@ -465,6 +472,9 @@ impl Setting {
             S::MarkdownTypewriter => "markdown.typewriterMode",
             S::MarkdownSelectionToolbar => "markdown.selectionToolbar",
             S::LatexPath => "latex.path",
+            S::CangjieSdkPath => "cangjie.sdkPath",
+            S::CangjieLspPath => "cangjie.lspPath",
+            S::CangjieLspEnabled => "cangjie.lspEnabled",
             S::CheckUpdates => "update.autoCheck",
             S::SystemProxy => "network.systemProxy",
             S::FormatOnSave => "format.onSave",
@@ -631,6 +641,9 @@ impl Setting {
             Setting::FileAssociations => t!("settings-file-associations"),
             Setting::ExportSettings => t!("settings-export"),
             Setting::ImportSettings => t!("settings-import"),
+            Setting::CangjieSdkPath => t!("settings-cangjie-sdk-path"),
+            Setting::CangjieLspPath => t!("settings-cangjie-lsp-path"),
+            Setting::CangjieLspEnabled => t!("settings-cangjie-lsp-enabled"),
             Setting::KeySearch => t!("settings-key-search"),
             Setting::Keymap => t!("settings-keys-keymap"),
             Setting::KeyMatches => t!("settings-key-matches"),
@@ -753,6 +766,9 @@ impl Setting {
                 Some(t!("settings-terminal-shell-integration-desc"))
             }
             Setting::TerminalOptionAsMeta => Some(t!("settings-terminal-option-as-meta-desc")),
+            Setting::CangjieSdkPath => Some(t!("settings-cangjie-sdk-path-desc")),
+            Setting::CangjieLspPath => Some(t!("settings-cangjie-lsp-path-desc")),
+            Setting::CangjieLspEnabled => Some(t!("settings-cangjie-lsp-enabled-desc")),
             Setting::TerminalApplicationPriority => {
                 Some(t!("settings-terminal-application-priority-desc"))
             }
@@ -836,12 +852,15 @@ impl Setting {
             | Setting::TerminalConfirmClose
             | Setting::TerminalPrompt
             | Setting::TerminalShellIntegration
+            | Setting::CangjieLspEnabled
             | Setting::TerminalApplicationPriority => SettingControl::Switch,
             Setting::FormatCommand(_)
             | Setting::FixCommand(_)
             | Setting::TerminalShell
             | Setting::GitPath
             | Setting::LatexPath
+            | Setting::CangjieSdkPath
+            | Setting::CangjieLspPath
             | Setting::AiBaseUrl
             | Setting::AiModel
             | Setting::AiApiKey => SettingControl::Command,

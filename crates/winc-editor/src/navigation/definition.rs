@@ -152,7 +152,7 @@ fn forms(name: &str, local: bool) -> Vec<(String, Form)> {
     let mut all = vec![
         // 关键字后跟名字：函数、类型、模块和常量的声明。
         declaration(format!(
-            r"\b(?:fn|trait|type|mod|def|defp|defmacro|defmacrop|defguard|defprotocol|defimpl|defdelegate|defmodule|defn-|defn|defmulti|defonce|defrecord|deftype|defstruct|class|interface|func|function|fun|sub|object|protocol|extension|module|namespace|record|macro_rules!|macro|data|newtype)\s+(?:(?:mut|rec|mutable|inline|private|abstract|static|async)\s+|\*\s*)*{qualifier}{sigil}(?P<NAME>{escaped}){after}"
+            r"\b(?:fn|trait|type|mod|def|defp|defmacro|defmacrop|defguard|defprotocol|defimpl|defdelegate|defmodule|defn-|defn|defmulti|defonce|defrecord|deftype|defstruct|class|interface|func|function|fun|sub|object|protocol|extension|module|namespace|record|macro_rules!|macro|data|newtype|extend|prop)\s+(?:(?:mut|rec|mutable|inline|private|public|protected|abstract|static|async|open|override|redef|operator|synchronized)\s+|\*\s*)*{qualifier}{sigil}(?P<NAME>{escaped}){after}"
         )),
         // C 系语言中这些关键字之后常是类型名（`static uart_ctx_t s;`）：名字之后紧跟名字、`*` 或
         // `&` 时是类型的使用。

@@ -20,6 +20,8 @@ pub const HIDDEN: &[&str] = &[
     "__pycache__",
     ".mypy_cache",
     ".pytest_cache",
+    "target",
+    ".cached",
 ];
 
 /// 返回遍历工作区目录的配置，快速打开的文件索引和全局搜索共用，两者看到的文件相同。

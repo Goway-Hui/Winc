@@ -29,6 +29,7 @@ const MARKERS: &[&str] = &[
     "deno.json",
     "deno.jsonc",
     "Cargo.toml",
+    "cjpm.toml",
     "go.mod",
     "pyproject.toml",
     "requirements.txt",
@@ -75,8 +76,8 @@ pub(super) fn is_marker(root: &Path, path: &Path) -> bool {
 /// 返回项目 `root` 的常用命令，每项是（名字，命令）。
 pub(super) fn detect_commands(root: &Path) -> Vec<(String, String)> {
     let sources = [
-        node, deno, rust, go, python, maven, gradle, dotnet, ruby, php, swift, dart, elixir, zig,
-        cmake, make, just,
+        node, deno, rust, cangjie, go, python, maven, gradle, dotnet, ruby, php, swift, dart,
+        elixir, zig, cmake, make, just,
     ];
     let mut commands: Vec<(String, String)> = Vec::new();
     for found in sources.into_iter().flat_map(|source| source(root)) {
@@ -203,6 +204,18 @@ fn rust(root: &Path) -> Vec<(String, String)> {
     commands.push(entry("check", "cargo check"));
     commands.push(entry("test", "cargo test"));
     commands
+}
+
+/// 返回仓颉项目的常用命令：只有 cjpm.toml 存在时才列，避免把任意目录当成可运行项目。
+fn cangjie(root: &Path) -> Vec<(String, String)> {
+    if !root.join("cjpm.toml").is_file() {
+        return Vec::new();
+    }
+    vec![
+        entry("build", "cjpm build"),
+        entry("test", "cjpm test"),
+        entry("run", "cjpm run"),
+    ]
 }
 
 /// 读取 TOML 中字符串数组 `key` 的各项，只处理 `Cargo.toml` 里 `members` 这样的简单写法。

@@ -160,3 +160,7 @@ format-install-note-eslint = ESLint 通常安装在项目中；此命令将安�
 format-install-note-clang-format = macOS 上的 Xcode 和命令行开发者工具已包含 clang-format。
 format-install-note-swift-format = Xcode 16 及以上版本和命令行开发者工具已包含 swift-format。
 format-install-note-xmllint = macOS 已预装 xmllint。
+format-install-note-cjfmt = cjfmt 随仓颉 SDK 提供；安装 SDK 后确保其 tools/bin 在 PATH 中。
+format-cjfmt-temp-failed = 无法写入仓颉格式化临时文件：{ $error }
+format-cjfmt-read-failed = 无法读取仓颉格式化结果：{ $error }
+format-cjfmt-unsupported-host = cjfmt 目前只能格式化本机文件

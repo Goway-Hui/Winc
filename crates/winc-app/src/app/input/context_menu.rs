@@ -86,6 +86,8 @@ pub enum MenuButton {
     TreeMore,
     /// 标签栏无法容纳全部标签时显示在最右端的「⌄」。
     TabList,
+    /// 顶栏右端的运行配置下拉按钮。
+    TopRun,
     /// 终端面板标签栏上的运行配置名。
     RunConfigs,
     /// 终端面板标签栏上「+」右边选 shell 的按钮。

@@ -3,6 +3,8 @@
 use super::super::touch;
 use super::*;
 use crate::app::git::panel::PanelHit;
+use crate::app::input::context_menu::{MenuButton, MenuTarget};
+use crate::keymap::Action;
 
 impl App {
     /// 处理鼠标按键 `button` 在当前鼠标位置按下。
@@ -264,6 +266,18 @@ impl App {
             Target::SidebarButton => self.toggle_sidebar(),
             Target::NewTab => self.new_file(),
             Target::TabList => self.open_tab_list_menu(),
+            Target::TopRunMenu => {
+                if let Some(menu) = self.hits.top_run_menu {
+                    self.open_button_menu(
+                        MenuButton::TopRun,
+                        MenuTarget::RunConfigs,
+                        (menu.x, menu.bottom()),
+                    );
+                }
+            }
+            Target::TopRunPlay => {
+                self.run_action(Action::RunConfiguration);
+            }
             Target::Preview(mode) => self.choose_preview_mode(mode),
             Target::Browser => self.open_in_browser(),
             Target::MarkdownLink(link) => self.open_markdown_link(link),
@@ -388,11 +402,22 @@ impl App {
             Target::ChangeMark(_) => {
                 self.click_change_mark(x, y);
             }
-            // 行号栏：点折叠箭头折叠或展开，点行号选中整行（由编辑区处理）。
-            Target::Gutter => match self.fold_at(x, y) {
-                Some(line) => self.click_fold(line),
-                None => self.click_editor(x, y),
-            },
+            // 行号栏：Alt 点击切换断点，点折叠箭头折叠或展开，点行号选中整行（由编辑区处理）。
+            Target::Gutter => {
+                if self.pointer.modifiers.alt_key()
+                    && let Some(offset) = self.pos_at(x, y)
+                    && let Some(doc) = self.editor.active()
+                {
+                    let line = doc.text().line_of(offset);
+                    let id = doc.id;
+                    self.click_debug_breakpoint(id, line);
+                } else {
+                    match self.fold_at(x, y) {
+                        Some(line) => self.click_fold(line),
+                        None => self.click_editor(x, y),
+                    }
+                }
+            }
             Target::LogText => {
                 // 详情里没按在可点击的条目上：选字（双击选一整行），按在空白处清掉选中。
                 let count = self.click_count(x, y);
@@ -421,6 +446,18 @@ impl App {
                 self.focus = Focus::TerminalRename;
                 self.click_field(x, y);
                 self.request_redraw();
+            }
+            Target::TerminalHeader(crate::app::terminal::HeaderHit::Debug(control)) => {
+                self.press_debug_control(control);
+            }
+            Target::TerminalHeader(crate::app::terminal::HeaderHit::DebugStack(index)) => {
+                self.select_debug_frame(index);
+            }
+            Target::TerminalHeader(crate::app::terminal::HeaderHit::DebugVariable(path)) => {
+                if let Some(scope) = path.get(0) {
+                    self.select_debug_scope(scope);
+                }
+                self.toggle_debug_variable(path);
             }
             Target::TerminalHeader(_) if self.field_at(x, y) == Some(Focus::TerminalFind) => {
                 self.focus = Focus::TerminalFind;
@@ -470,7 +507,11 @@ impl App {
                     HeaderHit::Hide => self.click_terminal_button(),
                     HeaderHit::Editor => self.move_terminal_to_editor(),
                     HeaderHit::Panel => self.move_terminal_to_panel(),
-                    HeaderHit::Run(_) | HeaderHit::Find(_) => {}
+                    HeaderHit::Run(_)
+                    | HeaderHit::Find(_)
+                    | HeaderHit::Debug(_)
+                    | HeaderHit::DebugStack(_)
+                    | HeaderHit::DebugVariable(_) => {}
                 }
             }
             Target::TerminalGroupSplit(index) if self.click_count(x, y) >= 2 => {
