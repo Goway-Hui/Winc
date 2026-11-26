@@ -375,6 +375,7 @@ fn command_palette_runs_commands_and_remembers_them() {
     let always = (palette().iter())
         .filter(|a| a.module().is_none())
         .filter(installable)
+        .filter(|a| app.action_available(**a))
         .count();
     assert_eq!(app.overlays.picker.hits.len(), always);
 

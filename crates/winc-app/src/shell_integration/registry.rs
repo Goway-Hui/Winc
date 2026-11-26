@@ -14,6 +14,7 @@ pub(super) const FILE_TYPES: &[&str] = &[
     "C",
     "CC",
     "CFG",
+    "CJ",
     "CJS",
     "CLJ",
     "CLJC",

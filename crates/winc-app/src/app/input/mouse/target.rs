@@ -115,6 +115,8 @@ impl App {
         client.extend(self.sidebar_tabs().iter().map(|(r, _)| *r));
         client.extend(self.hits.tree_tools.iter().map(|(r, _)| *r));
         client.extend(self.hits.terminal.iter().map(|(r, _)| *r));
+        client.extend(self.hits.top_run_menu);
+        client.extend(self.hits.top_run_play);
         client.extend(self.hits.terminal_groups.iter().flatten().map(|(r, _)| *r));
         client.extend(self.hits.merge.iter().map(|(r, _)| *r));
         client.extend(self.hits.crumbs.iter().map(|(r, _)| *r));

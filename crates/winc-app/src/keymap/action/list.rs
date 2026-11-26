@@ -176,6 +176,8 @@ pub const ACTIONS: &[Action] = {
         TrimTrailingWhitespace,
         UnescapeUnicode,
         EscapeUnicode,
+        PrettyPrintJson,
+        MinifyJson,
         IndentUsingSpaces,
         IndentUsingTabs,
         ConvertIndentationToSpaces,

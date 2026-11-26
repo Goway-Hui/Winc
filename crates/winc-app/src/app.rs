@@ -321,8 +321,10 @@ pub enum UserEvent {
     RemoteShells,
     /// 后台的文件操作（新建、改名、移动、删除）已完成。
     FileWorked,
-    /// 后台为远端文件的格式化选好了工具。
+    /// 后台为一次格式化选好了工具。
     FormatPlanned,
+    /// 后台为设置的格式化页算出了工具选择。
+    ToolsPlanned,
     /// 连接远端主机的 `ssh` 发来了输入请求。
     RemoteQuestion,
     /// 后台到远端主机的连接到达了新的阶段。
@@ -354,6 +356,8 @@ pub enum UserEvent {
     TerminalPaste(u16, String),
     /// 要粘贴到远端终端标签的图片或文件已在后台传到那台主机：标签，那里的路径或失败的原因。
     TerminalUploaded(u16, Result<Vec<String>, String>),
+    /// 要粘贴到本机终端标签的图片已在后台存为文件：标签，文件的路径或失败的原因。
+    TerminalImageSaved(u16, Result<PathBuf, String>),
     /// 确认框中确认日志中对一个提交的操作（签出该提交、硬重置）。
     GitLogConfirmed(git::log::LogConfirmed),
     /// 确认框中确认移除参数所指的工作树；第二个参数是一并删除的分支（勾选「同时删除分支」时）。
@@ -1292,6 +1296,7 @@ impl App {
             UserEvent::FolderListed => self.poll_folder_levels(),
             UserEvent::WatcherStarted => self.poll_watchers(),
             UserEvent::FormatPlanned => self.poll_formatting(),
+            UserEvent::ToolsPlanned => self.poll_tool_plans(),
             UserEvent::FileWorked => self.poll_file_work(),
             UserEvent::GitMergeSides => self.poll_merge_sides(),
             UserEvent::GitLog => self.poll_log(),

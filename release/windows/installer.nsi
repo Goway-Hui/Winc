@@ -72,6 +72,7 @@ LangString OpenFolderVerb ${LANG_SIMPCHINESE} "在 Winc 中打开"
   !insertmacro ${Action} C c
   !insertmacro ${Action} CC c
   !insertmacro ${Action} CFG config
+  !insertmacro ${Action} CJ code
   !insertmacro ${Action} CJS javascript
   !insertmacro ${Action} CLJ code
   !insertmacro ${Action} CLJC code
