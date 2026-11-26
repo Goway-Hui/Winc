@@ -205,6 +205,7 @@ cmd-delete-file-permanently = Delete Permanently
 cmd-open-selected = Open
 cmd-preview-selected = Open (Keep Focus in File Tree)
 cmd-find-in-folder = Find in Folder…
+cmd-replace-in-folder = Replace in Folder…
 cmd-toggle-sidebar = Show or Hide Sidebar
 cmd-focus-sidebar = Focus Sidebar
 cmd-show-files = Show Files

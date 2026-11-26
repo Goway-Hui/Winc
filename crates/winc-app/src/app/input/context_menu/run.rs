@@ -555,6 +555,8 @@ impl App {
             MenuCommand::OpenInTerminal => self.open_in_terminal(Some(&target)),
             MenuCommand::RunScript => self.run_script(&target),
             MenuCommand::FindInFolder => self.find_in_folder(&target),
+            MenuCommand::ReplaceInFolder => self.replace_in_folder(&target),
+            MenuCommand::TreeRefresh => self.run_tree_tool(TreeTool::Refresh),
             MenuCommand::CopyPath => self.copy_path(&target, false),
             MenuCommand::CopyRelativePath => self.copy_path(&target, true),
             MenuCommand::CopyAsPrompt if path.is_some() => self.copy_as_prompt(vec![target]),
@@ -888,6 +890,16 @@ impl App {
     /// 把「包含」填成 `./相对路径`，并展开过滤条件。Windows 上路径中的 `\` 换成 `/`：规则按 glob
     /// 解析，各系统上填入的写法相同。
     pub(in crate::app) fn find_in_folder(&mut self, path: &Path) {
+        self.search_in_folder(path, false);
+    }
+
+    /// 在文件树中右键目录的「在目录中替换」：搜索范围限定为该目录，并展开替换输入框。
+    pub(in crate::app) fn replace_in_folder(&mut self, path: &Path) {
+        self.search_in_folder(path, true);
+    }
+
+    /// 把全局搜索的范围限定为 `path` 所在目录；`replace` 为真时展开替换输入框。
+    fn search_in_folder(&mut self, path: &Path, replace: bool) {
         let dir = self.folder_of(path);
         let include = self
             .relative_path(&dir)
@@ -901,7 +913,7 @@ impl App {
             self.panels.global.include.set_text(&include);
         }
         self.panels.global.details_open |= !include.is_empty();
-        self.open_global_search(false);
+        self.open_global_search(replace);
 
         if !self.panels.global.query.text().is_empty() {
             self.global_changed(true);

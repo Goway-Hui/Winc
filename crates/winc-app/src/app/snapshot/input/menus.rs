@@ -150,6 +150,20 @@ fn tree_context_menu_targets_the_clicked_row() {
     assert!(app.panels.global.details_open);
     assert_eq!(app.focus, Focus::GlobalQuery);
 
+    // 在 `src` 上「在目录中替换」：范围仍是 `./src`，并展开替换框。
+    app.set_sidebar_view(SidebarView::Files);
+    paint(&mut app);
+    let src = row_of(&app, "src");
+    let at = tree_row_center(&app, src);
+    right_click(&mut app, at);
+    assert!(
+        menu_commands(&app).contains(&(MenuCommand::ReplaceInFolder, true)),
+        "missing replace in folder"
+    );
+    app.run_menu_command(MenuCommand::ReplaceInFolder);
+    assert_eq!(app.panels.global.include.text(), "./src");
+    assert!(app.panels.global.replace_open);
+
     let _ = std::fs::remove_dir_all(&dir);
 }
 

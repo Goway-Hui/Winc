@@ -101,11 +101,13 @@ fn menus_depend_on_what_was_clicked() {
         [
             NewFile,
             NewFolder,
+            CopyPath,
+            Paste,
+            FindInFolder,
+            ReplaceInFolder,
             Reveal,
             OpenInTerminal,
-            FindInFolder,
-            Paste,
-            CopyPath
+            TreeRefresh
         ]
     );
     let file: Vec<_> = commands(tree_menu(Some(EntryKind::File), false, false))
@@ -114,7 +116,11 @@ fn menus_depend_on_what_was_clicked() {
         .collect();
     assert!(!file.contains(&FindInFolder) && file.contains(&Delete) && file.contains(&Copy));
     assert!(file.contains(&Cut));
+    assert!(file.contains(&TreeRefresh));
     assert!(commands(tree_menu(Some(EntryKind::Dir), true, false)).contains(&(FindInFolder, true)));
+    assert!(
+        commands(tree_menu(Some(EntryKind::Dir), true, false)).contains(&(ReplaceInFolder, true))
+    );
     // 多选：正好两个文件时才能比较，没有文件时「打开」灰显。
     assert!(commands(tree_selection_menu(2, false)).contains(&(CompareFiles, true)));
     assert!(

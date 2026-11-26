@@ -128,6 +128,8 @@ pub enum MenuCommand {
     RunScript,
     /// 只在该目录中做全局搜索。
     FindInFolder,
+    /// 只在该目录中做全局替换。
+    ReplaceInFolder,
     CopyPath,
     CopyRelativePath,
     /// 将文件树中选中的文件复制为 Markdown 提示词。
@@ -613,6 +615,7 @@ impl MenuCommand {
             MenuCommand::OpenInTerminal => t!("menu-open-in-terminal"),
             MenuCommand::RunScript => t!("menu-run-in-terminal"),
             MenuCommand::FindInFolder => t!("cmd-find-in-folder"),
+            MenuCommand::ReplaceInFolder => t!("cmd-replace-in-folder"),
             MenuCommand::CopyPath => t!("cmd-copy-path"),
             MenuCommand::CopyRelativePath => t!("cmd-copy-relative-path"),
             MenuCommand::CopyAsPrompt => t!("menu-copy-as-prompt"),
@@ -932,6 +935,7 @@ impl MenuCommand {
             MenuCommand::Reveal => Action::RevealInFinder,
             MenuCommand::OpenInTerminal => Action::OpenInTerminal,
             MenuCommand::FindInFolder => Action::FindInFolder,
+            MenuCommand::ReplaceInFolder => return None,
             MenuCommand::CopyPath => Action::CopyPath,
             MenuCommand::CopyRelativePath => Action::CopyRelativePath,
             MenuCommand::CopyReference => Action::CopyReference,

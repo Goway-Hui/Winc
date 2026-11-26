@@ -158,35 +158,49 @@ pub fn without_local_only(menu: Vec<MenuEntry>, terminal: bool, mounted: bool) -
 /// 返回文件树菜单的菜单项。
 ///
 /// `kind` 是右键点中的那一项的类型，`None` 表示空白处（根目录）：根目录不能改名、删除，
-/// 也没有相对路径。「在目录中查找」只对目录和根目录出现。`remote` 表示这一项在远端主机上，
-/// 此时可以下载到本机。
+/// 也没有相对路径。「在目录中查找」「在目录中替换」只对目录和根目录出现。`remote` 表示这一
+/// 项在远端主机上，此时可以下载到本机。
 pub fn tree_menu(kind: Option<EntryKind>, can_paste: bool, remote: bool) -> Vec<MenuEntry> {
     use MenuCommand::*;
-    use MenuEntry::{Item, Separator};
+    use MenuEntry::{Item, Separator, Submenu};
 
     let mut menu = vec![Item(NewFile, true), Item(NewFolder, true), Separator];
-    menu.push(Item(Reveal, true));
-    menu.push(Item(OpenInTerminal, true));
-    if kind != Some(EntryKind::File) {
-        menu.push(Item(FindInFolder, true));
-    }
-    menu.push(Separator);
     if kind.is_some() {
         menu.extend([Item(Cut, true), Item(Copy, true)]);
+    }
+    let mut paths = vec![Item(CopyPath, true)];
+    if kind.is_some() {
+        paths.push(Item(CopyRelativePath, true));
+        if kind == Some(EntryKind::File) {
+            paths.push(Item(CopyAsPrompt, true));
+        }
+    }
+    if paths.len() == 1 {
+        menu.push(paths.pop().unwrap());
+    } else {
+        menu.push(Submenu(t!("menu-copy-path-reference").to_owned(), paths));
     }
     menu.push(Item(Paste, can_paste));
     if remote && kind.is_some() {
         menu.push(Item(Download, true));
     }
-    menu.push(Separator);
-    menu.push(Item(CopyPath, true));
+    if kind != Some(EntryKind::File) {
+        menu.extend([
+            Separator,
+            Item(FindInFolder, true),
+            Item(ReplaceInFolder, true),
+        ]);
+    }
     if kind.is_some() {
-        menu.push(Item(CopyRelativePath, true));
-        if kind == Some(EntryKind::File) {
-            menu.push(Item(CopyAsPrompt, true));
-        }
         menu.extend([Separator, Item(Rename, true), Item(Delete, true)]);
     }
+    menu.extend([
+        Separator,
+        Item(Reveal, true),
+        Item(OpenInTerminal, true),
+        Separator,
+        Item(TreeRefresh, true),
+    ]);
     menu
 }
 

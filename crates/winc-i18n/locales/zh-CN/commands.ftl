@@ -205,6 +205,7 @@ cmd-delete-file-permanently = 永久删除
 cmd-open-selected = 打开
 cmd-preview-selected = 打开（焦点保留在文件树）
 cmd-find-in-folder = 在目录中查找…
+cmd-replace-in-folder = 在目录中替换…
 cmd-toggle-sidebar = 显示或隐藏侧栏
 cmd-focus-sidebar = 聚焦到侧栏
 cmd-show-files = 显示文件
